@@ -297,6 +297,3 @@ class RqdataDatafeed(BaseDatafeed):
                 data.append(tick)
 
         return data
-
-
-datafeed = RqdataDatafeed()

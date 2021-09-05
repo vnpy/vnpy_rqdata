@@ -20,9 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from .rqdata_datafeed import datafeed
 
 import importlib_metadata
+
+from .rqdata_datafeed import RqdataDatafeed as Datafeed
 
 
 try:
