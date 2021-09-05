@@ -170,7 +170,7 @@ class RqdataDatafeed(BaseDatafeed):
 
         if df is not None:
             for ix, row in df.iterrows():
-                dt = row.name.to_pydatetime() - adjustment
+                dt = row.name[1].to_pydatetime() - adjustment
                 dt = CHINA_TZ.localize(dt)
 
                 bar = BarData(
@@ -255,7 +255,7 @@ class RqdataDatafeed(BaseDatafeed):
 
         if df is not None:
             for ix, row in df.iterrows():
-                dt = row.name.to_pydatetime()
+                dt = row.name[1].to_pydatetime()
                 dt = CHINA_TZ.localize(dt)
 
                 tick = TickData(
