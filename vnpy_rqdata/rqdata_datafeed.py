@@ -139,8 +139,6 @@ class RqdataDatafeed(BaseDatafeed):
         end = req.end
 
         rq_symbol = to_rq_symbol(symbol, exchange)
-        if rq_symbol not in self.symbols:
-            return None
 
         rq_interval = INTERVAL_VT2RQ.get(interval)
         if not rq_interval:
@@ -153,7 +151,7 @@ class RqdataDatafeed(BaseDatafeed):
         end += timedelta(1)
 
         # 只对衍生品合约才查询持仓量数据
-        fields = ["open", "high", "low", "close", "volume"]
+        fields = ["open", "high", "low", "close", "volume", "total_turnover"]
         if not symbol.isdigit():
             fields.append("open_interest")
 
@@ -170,6 +168,7 @@ class RqdataDatafeed(BaseDatafeed):
 
         if df is not None:
             for ix, row in df.iterrows():
+                print(row)
                 dt = row.name[1].to_pydatetime() - adjustment
                 dt = CHINA_TZ.localize(dt)
 
@@ -183,6 +182,7 @@ class RqdataDatafeed(BaseDatafeed):
                     low_price=round_to(row["low"], 0.000001),
                     close_price=round_to(row["close"], 0.000001),
                     volume=row["volume"],
+                    turnover=row["total_turnover"],
                     open_interest=row.get("open_interest", 0),
                     gateway_name="RQ"
                 )
