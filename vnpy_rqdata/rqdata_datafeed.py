@@ -168,7 +168,6 @@ class RqdataDatafeed(BaseDatafeed):
 
         if df is not None:
             for ix, row in df.iterrows():
-                print(row)
                 dt = row.name[1].to_pydatetime() - adjustment
                 dt = CHINA_TZ.localize(dt)
 
