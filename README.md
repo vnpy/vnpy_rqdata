@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-    <img src ="https://img.shields.io/badge/version-2.9.37.0-blueviolet.svg"/>
+    <img src ="https://img.shields.io/badge/version-2.9.38.0-blueviolet.svg"/>
     <img src ="https://img.shields.io/badge/platform-windows|linux-yellow.svg"/>
     <img src ="https://img.shields.io/badge/python-3.7-blue.svg" />
     <img src ="https://img.shields.io/github/license/vnpy/vnpy.svg?color=orange"/>
@@ -46,3 +46,13 @@ pip install vnpy_rqdata
 ```
 python setup.py install
 ```
+
+## 使用
+
+在vn.py中使用米筐RQData时，需要在全局配置中填写以下字段信息：
+
+|名称|含义|必填|举例|
+|---------|----|---|---|
+|datafeed.name|名称|是|rqdata|
+|datafeed.username|用户名|是|license|
+|datafeed.password|密码|是|bqIA9yH6GY3ie4jtDwlLauQJ90XX7qJ9F4My-DxzS|
