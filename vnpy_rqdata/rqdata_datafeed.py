@@ -130,7 +130,9 @@ class RqdataDatafeed(BaseDatafeed):
     def query_bar_history(self, req: HistoryRequest) -> Optional[List[BarData]]:
         """查询K线数据"""
         if not self.inited:
-            self.init()
+            n = self.init()
+            if not n:
+                return []
 
         symbol = req.symbol
         exchange = req.exchange
@@ -193,7 +195,9 @@ class RqdataDatafeed(BaseDatafeed):
     def query_tick_history(self, req: HistoryRequest) -> Optional[List[TickData]]:
         """查询Tick数据"""
         if not self.inited:
-            self.init()
+            n = self.init()
+            if not n:
+                return []
 
         symbol = req.symbol
         exchange = req.exchange
