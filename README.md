@@ -55,4 +55,4 @@ python setup.py install
 |---------|----|---|---|
 |datafeed.name|名称|是|rqdata|
 |datafeed.username|用户名|是|license|
-|datafeed.password|密码|是|bqIA9yH6GY3ie4jtDwlLauQJ90XX7qJ9F4My-DxzS|
+|datafeed.password|密码|是|(请填写购买或申请试用RQData后，RQData提供的token)|
