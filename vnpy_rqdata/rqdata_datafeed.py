@@ -116,7 +116,8 @@ class RqdataDatafeed(BaseDatafeed):
                 self.password,
                 ("rqdatad-pro.ricequant.com", 16011),
                 use_pool=True,
-                max_pool_size=1
+                max_pool_size=1,
+                auto_load_plugins=False
             )
 
             df = all_instruments()
