@@ -147,7 +147,7 @@ class RqdataDatafeed(BaseDatafeed):
         if not rq_interval:
             return None
 
-        # 为了将米筐时间戳（K线结束时点）转换为vn.py时间戳（K线开始时点）
+        # 为了将米筐时间戳（K线结束时点）转换为VeighNa时间戳（K线开始时点）
         adjustment = INTERVAL_ADJUSTMENT_MAP[interval]
 
         # 为了查询夜盘数据
