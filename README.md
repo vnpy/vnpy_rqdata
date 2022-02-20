@@ -32,7 +32,7 @@
 
 ## 安装
 
-安装需要基于3.0.0版本以上的[VN Studio](https://www.vnpy.com)。
+安装环境推荐基于3.0.0版本以上的【[**VeighNa Studio**](https://www.vnpy.com)】。
 
 直接使用pip命令：
 
@@ -41,11 +41,12 @@ pip install vnpy_rqdata
 ```
 
 
-或者下载解压后在cmd中运行：
+或者下载源代码后，解压后在cmd中运行：
 
 ```
-python setup.py install
+pip install .
 ```
+
 
 ## 使用
 
