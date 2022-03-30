@@ -170,9 +170,10 @@ class RqdataDatafeed(BaseDatafeed):
         data: List[BarData] = []
 
         if df is not None:
-            for ix, row in df.iterrows():
-                dt = row.name[1].to_pydatetime() - adjustment
+            for row in df.itertuples():
+                dt = row.Index[1].to_pydatetime() - adjustment
                 dt = CHINA_TZ.localize(dt)
+                row = row._asdict()
 
                 bar = BarData(
                     symbol=symbol,
@@ -259,9 +260,10 @@ class RqdataDatafeed(BaseDatafeed):
         data: List[TickData] = []
 
         if df is not None:
-            for ix, row in df.iterrows():
-                dt = row.name[1].to_pydatetime()
+            for row in df.itertuples():
+                dt = row.Index[1].to_pydatetime()
                 dt = CHINA_TZ.localize(dt)
+                row = row._asdict()
 
                 tick = TickData(
                     symbol=symbol,
