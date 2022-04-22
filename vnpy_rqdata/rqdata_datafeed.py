@@ -36,14 +36,14 @@ def to_rq_symbol(symbol: str, exchange: Exchange) -> str:
     # 股票
     if exchange in [Exchange.SSE, Exchange.SZSE]:
         if exchange == Exchange.SSE:
-            rq_symbol = f"{symbol}.XSHG"
+            rq_symbol: str = f"{symbol}.XSHG"
         else:
-            rq_symbol = f"{symbol}.XSHE"
+            rq_symbol: str = f"{symbol}.XSHE"
     # 金交所现货
     elif exchange in [Exchange.SGE]:
         for char in ["(", ")", "+"]:
-            symbol = symbol.replace(char, "")
-        symbol: str = symbol.upper()
+            symbol: str = symbol.replace(char, "")
+        symbol = symbol.upper()
         rq_symbol: str = f"{symbol}.SGEX"
     # 期货和期权
     elif exchange in [Exchange.SHFE, Exchange.CFFEX, Exchange.DCE, Exchange.CZCE, Exchange.INE]:
@@ -75,7 +75,7 @@ def to_rq_symbol(symbol: str, exchange: Exchange) -> str:
         # 期权
         else:
             if exchange in [Exchange.CFFEX, Exchange.DCE, Exchange.SHFE]:
-                rq_symbol = symbol.replace("-", "").upper()
+                rq_symbol: str = symbol.replace("-", "").upper()
             elif exchange == Exchange.CZCE:
                 year: str = symbol[count]
                 suffix: str = symbol[count + 1:]
