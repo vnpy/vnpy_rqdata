@@ -171,23 +171,25 @@ class RqdataDatafeed(BaseDatafeed):
         data: List[BarData] = []
 
         if df is not None:
+            # 填充NaN为0
+            df.fillna(0, inplace=True)
+
             for row in df.itertuples():
                 dt: datetime = row.Index[1].to_pydatetime() - adjustment
                 dt: datetime = CHINA_TZ.localize(dt)
-                row = row._asdict()
 
                 bar: BarData = BarData(
                     symbol=symbol,
                     exchange=exchange,
                     interval=interval,
                     datetime=dt,
-                    open_price=round_to(row["open"], 0.000001),
-                    high_price=round_to(row["high"], 0.000001),
-                    low_price=round_to(row["low"], 0.000001),
-                    close_price=round_to(row["close"], 0.000001),
-                    volume=row["volume"],
-                    turnover=row["total_turnover"],
-                    open_interest=row.get("open_interest", 0),
+                    open_price=round_to(row.open, 0.000001),
+                    high_price=round_to(row.high, 0.000001),
+                    low_price=round_to(row.low, 0.000001),
+                    close_price=round_to(row.close, 0.000001),
+                    volume=row.volume,
+                    turnover=row.total_turnover,
+                    open_interest=getattr(row, "open_interest", 0),
                     gateway_name="RQ"
                 )
 
@@ -261,45 +263,47 @@ class RqdataDatafeed(BaseDatafeed):
         data: List[TickData] = []
 
         if df is not None:
+            # 填充NaN为0
+            df.fillna(0, inplace=True)
+
             for row in df.itertuples():
                 dt: datetime = row.Index[1].to_pydatetime()
                 dt: datetime = CHINA_TZ.localize(dt)
-                row = row._asdict()
 
                 tick: TickData = TickData(
                     symbol=symbol,
                     exchange=exchange,
                     datetime=dt,
-                    open_price=row["open"],
-                    high_price=row["high"],
-                    low_price=row["low"],
-                    pre_close=row["prev_close"],
-                    last_price=row["last"],
-                    volume=row["volume"],
-                    turnover=row["total_turnover"],
-                    open_interest=row.get("open_interest", 0),
-                    limit_up=row["limit_up"],
-                    limit_down=row["limit_down"],
-                    bid_price_1=row["b1"],
-                    bid_price_2=row["b2"],
-                    bid_price_3=row["b3"],
-                    bid_price_4=row["b4"],
-                    bid_price_5=row["b5"],
-                    ask_price_1=row["a1"],
-                    ask_price_2=row["a2"],
-                    ask_price_3=row["a3"],
-                    ask_price_4=row["a4"],
-                    ask_price_5=row["a5"],
-                    bid_volume_1=row["b1_v"],
-                    bid_volume_2=row["b2_v"],
-                    bid_volume_3=row["b3_v"],
-                    bid_volume_4=row["b4_v"],
-                    bid_volume_5=row["b5_v"],
-                    ask_volume_1=row["a1_v"],
-                    ask_volume_2=row["a2_v"],
-                    ask_volume_3=row["a3_v"],
-                    ask_volume_4=row["a4_v"],
-                    ask_volume_5=row["a5_v"],
+                    open_price=row.open,
+                    high_price=row.high,
+                    low_price=row.low,
+                    pre_close=row.prev_close,
+                    last_price=row.last,
+                    volume=row.volume,
+                    turnover=row.total_turnover,
+                    open_interest=getattr(row, "open_interest", 0),
+                    limit_up=row.limit_up,
+                    limit_down=row.limit_down,
+                    bid_price_1=row.b1,
+                    bid_price_2=row.b2,
+                    bid_price_3=row.b3,
+                    bid_price_4=row.b4,
+                    bid_price_5=row.b5,
+                    ask_price_1=row.a1,
+                    ask_price_2=row.a2,
+                    ask_price_3=row.a3,
+                    ask_price_4=row.a4,
+                    ask_price_5=row.a5,
+                    bid_volume_1=row.b1_v,
+                    bid_volume_2=row.b2_v,
+                    bid_volume_3=row.b3_v,
+                    bid_volume_4=row.b4_v,
+                    bid_volume_5=row.b5_v,
+                    ask_volume_1=row.a1_v,
+                    ask_volume_2=row.a2_v,
+                    ask_volume_3=row.a3_v,
+                    ask_volume_4=row.a4_v,
+                    ask_volume_5=row.a5_v,
                     gateway_name="RQ"
                 )
 
