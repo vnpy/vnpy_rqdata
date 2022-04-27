@@ -1,8 +1,9 @@
-from datetime import timedelta
-from typing import List, Optional
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
 from pytz import timezone
 
 from numpy import ndarray
+from pandas import DataFrame
 from rqdatac import init
 from rqdatac.services.get_price import get_price
 from rqdatac.services.basic import all_instruments
@@ -15,13 +16,13 @@ from vnpy.trader.utility import round_to
 from vnpy.trader.datafeed import BaseDatafeed
 
 
-INTERVAL_VT2RQ = {
+INTERVAL_VT2RQ: Dict[Interval, str] = {
     Interval.MINUTE: "1m",
     Interval.HOUR: "60m",
     Interval.DAILY: "1d",
 }
 
-INTERVAL_ADJUSTMENT_MAP = {
+INTERVAL_ADJUSTMENT_MAP: Dict[Interval, timedelta] = {
     Interval.MINUTE: timedelta(minutes=1),
     Interval.HOUR: timedelta(hours=1),
     Interval.DAILY: timedelta()         # no need to adjust for daily bar
@@ -35,23 +36,23 @@ def to_rq_symbol(symbol: str, exchange: Exchange) -> str:
     # 股票
     if exchange in [Exchange.SSE, Exchange.SZSE]:
         if exchange == Exchange.SSE:
-            rq_symbol = f"{symbol}.XSHG"
+            rq_symbol: str = f"{symbol}.XSHG"
         else:
-            rq_symbol = f"{symbol}.XSHE"
+            rq_symbol: str = f"{symbol}.XSHE"
     # 金交所现货
     elif exchange in [Exchange.SGE]:
         for char in ["(", ")", "+"]:
-            symbol = symbol.replace(char, "")
+            symbol: str = symbol.replace(char, "")
         symbol = symbol.upper()
-        rq_symbol = f"{symbol}.SGEX"
+        rq_symbol: str = f"{symbol}.SGEX"
     # 期货和期权
     elif exchange in [Exchange.SHFE, Exchange.CFFEX, Exchange.DCE, Exchange.CZCE, Exchange.INE]:
         for count, word in enumerate(symbol):
             if word.isdigit():
                 break
 
-        product = symbol[:count]
-        time_str = symbol[count:]
+        product: str = symbol[:count]
+        time_str: str = symbol[count:]
 
         # 期货
         if time_str.isdigit():
@@ -62,31 +63,31 @@ def to_rq_symbol(symbol: str, exchange: Exchange) -> str:
             if time_str in ["88", "888", "99", "889"]:
                 return symbol
 
-            year = symbol[count]
-            month = symbol[count + 1:]
+            year: str = symbol[count]
+            month: str = symbol[count + 1:]
 
             if year == "9":
                 year = "1" + year
             else:
                 year = "2" + year
 
-            rq_symbol = f"{product}{year}{month}".upper()
+            rq_symbol: str = f"{product}{year}{month}".upper()
         # 期权
         else:
             if exchange in [Exchange.CFFEX, Exchange.DCE, Exchange.SHFE]:
-                rq_symbol = symbol.replace("-", "").upper()
+                rq_symbol: str = symbol.replace("-", "").upper()
             elif exchange == Exchange.CZCE:
-                year = symbol[count]
-                suffix = symbol[count + 1:]
+                year: str = symbol[count]
+                suffix: str = symbol[count + 1:]
 
                 if year == "9":
                     year = "1" + year
                 else:
                     year = "2" + year
 
-                rq_symbol = f"{product}{year}{suffix}".upper()
+                rq_symbol: str = f"{product}{year}{suffix}".upper()
     else:
-        rq_symbol = f"{symbol}.{exchange.value}"
+        rq_symbol: str = f"{symbol}.{exchange.value}"
 
     return rq_symbol
 
@@ -120,7 +121,7 @@ class RqdataDatafeed(BaseDatafeed):
                 auto_load_plugins=False
             )
 
-            df = all_instruments()
+            df: DataFrame = all_instruments()
             self.symbols = df["order_book_id"].values
         except (RuntimeError, AuthenticationFailed):
             return False
@@ -131,34 +132,34 @@ class RqdataDatafeed(BaseDatafeed):
     def query_bar_history(self, req: HistoryRequest) -> Optional[List[BarData]]:
         """查询K线数据"""
         if not self.inited:
-            n = self.init()
+            n: bool = self.init()
             if not n:
                 return []
 
-        symbol = req.symbol
-        exchange = req.exchange
-        interval = req.interval
-        start = req.start
-        end = req.end
+        symbol: str = req.symbol
+        exchange: Exchange = req.exchange
+        interval: Interval = req.interval
+        start: datetime = req.start
+        end: datetime = req.end
 
-        rq_symbol = to_rq_symbol(symbol, exchange)
+        rq_symbol: str = to_rq_symbol(symbol, exchange)
 
-        rq_interval = INTERVAL_VT2RQ.get(interval)
+        rq_interval: str = INTERVAL_VT2RQ.get(interval)
         if not rq_interval:
             return None
 
         # 为了将米筐时间戳（K线结束时点）转换为VeighNa时间戳（K线开始时点）
-        adjustment = INTERVAL_ADJUSTMENT_MAP[interval]
+        adjustment: timedelta = INTERVAL_ADJUSTMENT_MAP[interval]
 
         # 为了查询夜盘数据
         end += timedelta(1)
 
         # 只对衍生品合约才查询持仓量数据
-        fields = ["open", "high", "low", "close", "volume", "total_turnover"]
+        fields: list = ["open", "high", "low", "close", "volume", "total_turnover"]
         if not symbol.isdigit():
             fields.append("open_interest")
 
-        df = get_price(
+        df: DataFrame = get_price(
             rq_symbol,
             frequency=rq_interval,
             fields=fields,
@@ -171,10 +172,10 @@ class RqdataDatafeed(BaseDatafeed):
 
         if df is not None:
             for ix, row in df.iterrows():
-                dt = row.name[1].to_pydatetime() - adjustment
-                dt = CHINA_TZ.localize(dt)
+                dt: datetime = row.name[1].to_pydatetime() - adjustment
+                dt: datetime = CHINA_TZ.localize(dt)
 
-                bar = BarData(
+                bar: BarData = BarData(
                     symbol=symbol,
                     exchange=exchange,
                     interval=interval,
@@ -196,16 +197,16 @@ class RqdataDatafeed(BaseDatafeed):
     def query_tick_history(self, req: HistoryRequest) -> Optional[List[TickData]]:
         """查询Tick数据"""
         if not self.inited:
-            n = self.init()
+            n: bool = self.init()
             if not n:
                 return []
 
-        symbol = req.symbol
-        exchange = req.exchange
-        start = req.start
-        end = req.end
+        symbol: str = req.symbol
+        exchange: Exchange = req.exchange
+        start: datetime = req.start
+        end: datetime = req.end
 
-        rq_symbol = to_rq_symbol(symbol, exchange)
+        rq_symbol: str = to_rq_symbol(symbol, exchange)
         if rq_symbol not in self.symbols:
             return None
 
@@ -213,7 +214,7 @@ class RqdataDatafeed(BaseDatafeed):
         end += timedelta(1)
 
         # 只对衍生品合约才查询持仓量数据
-        fields = [
+        fields: list = [
             "open",
             "high",
             "low",
@@ -247,7 +248,7 @@ class RqdataDatafeed(BaseDatafeed):
         if not symbol.isdigit():
             fields.append("open_interest")
 
-        df = get_price(
+        df: DataFrame = get_price(
             rq_symbol,
             frequency="tick",
             fields=fields,
@@ -260,10 +261,10 @@ class RqdataDatafeed(BaseDatafeed):
 
         if df is not None:
             for ix, row in df.iterrows():
-                dt = row.name[1].to_pydatetime()
-                dt = CHINA_TZ.localize(dt)
+                dt: datetime = row.name[1].to_pydatetime()
+                dt: datetime = CHINA_TZ.localize(dt)
 
-                tick = TickData(
+                tick: TickData = TickData(
                     symbol=symbol,
                     exchange=exchange,
                     datetime=dt,
