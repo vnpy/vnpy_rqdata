@@ -29,7 +29,7 @@
 *.pyc
 dist/
 build/
-vnpy_ctp.egg-info/
+vnpy_rqdata.egg-info/
 __pycache__/
 
 # Visual Studio
