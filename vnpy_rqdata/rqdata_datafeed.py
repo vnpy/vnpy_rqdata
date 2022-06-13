@@ -1,4 +1,3 @@
-import sys
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
@@ -12,13 +11,9 @@ from rqdatac.share.errors import AuthenticationFailed
 from vnpy.trader.setting import SETTINGS
 from vnpy.trader.constant import Exchange, Interval
 from vnpy.trader.object import BarData, TickData, HistoryRequest
-from vnpy.trader.utility import round_to
+from vnpy.trader.utility import round_to, ZoneInfo
 from vnpy.trader.datafeed import BaseDatafeed
 
-if sys.version_info >= (3, 9):
-    from zoneinfo import ZoneInfo
-else:
-    from backports.zoneinfo import ZoneInfo
 
 INTERVAL_VT2RQ: Dict[Interval, str] = {
     Interval.MINUTE: "1m",
