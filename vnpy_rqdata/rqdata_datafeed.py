@@ -1,6 +1,6 @@
+import sys
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-from pytz import timezone
 
 from numpy import ndarray
 from pandas import DataFrame
@@ -15,6 +15,10 @@ from vnpy.trader.object import BarData, TickData, HistoryRequest
 from vnpy.trader.utility import round_to
 from vnpy.trader.datafeed import BaseDatafeed
 
+if sys.version_info >= (3, 9):
+    from zoneinfo import ZoneInfo
+else:
+    from backports.zoneinfo import ZoneInfo
 
 INTERVAL_VT2RQ: Dict[Interval, str] = {
     Interval.MINUTE: "1m",
@@ -28,7 +32,7 @@ INTERVAL_ADJUSTMENT_MAP: Dict[Interval, timedelta] = {
     Interval.DAILY: timedelta()         # no need to adjust for daily bar
 }
 
-CHINA_TZ = timezone("Asia/Shanghai")
+CHINA_TZ = ZoneInfo("Asia/Shanghai")
 
 
 def to_rq_symbol(symbol: str, exchange: Exchange) -> str:
@@ -176,7 +180,7 @@ class RqdataDatafeed(BaseDatafeed):
 
             for row in df.itertuples():
                 dt: datetime = row.Index[1].to_pydatetime() - adjustment
-                dt: datetime = CHINA_TZ.localize(dt)
+                dt: datetime = dt.replace(tzinfo=CHINA_TZ)
 
                 bar: BarData = BarData(
                     symbol=symbol,
@@ -268,7 +272,7 @@ class RqdataDatafeed(BaseDatafeed):
 
             for row in df.itertuples():
                 dt: datetime = row.Index[1].to_pydatetime()
-                dt: datetime = CHINA_TZ.localize(dt)
+                dt: datetime = dt.replace(tzinfo=CHINA_TZ)
 
                 tick: TickData = TickData(
                     symbol=symbol,
