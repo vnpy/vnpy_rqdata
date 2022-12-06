@@ -24,6 +24,7 @@
 import importlib_metadata
 
 from .rqdata_datafeed import RqdataDatafeed as Datafeed
+from .rqdata_gateway import RqdataGateway
 
 
 try:
