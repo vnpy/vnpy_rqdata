@@ -14,6 +14,7 @@ from vnpy.trader.object import BarData, TickData, HistoryRequest
 from vnpy.trader.utility import round_to, ZoneInfo
 from vnpy.trader.datafeed import BaseDatafeed
 
+import warnings
 
 INTERVAL_VT2RQ: Dict[Interval, str] = {
     Interval.MINUTE: "1m",
@@ -158,14 +159,28 @@ class RqdataDatafeed(BaseDatafeed):
         if not symbol.isdigit():
             fields.append("open_interest")
 
-        df: DataFrame = get_price(
-            rq_symbol,
-            frequency=rq_interval,
-            fields=fields,
-            start_date=start,
-            end_date=end,
-            adjust_type="none"
-        )
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                df: DataFrame = get_price(
+                    rq_symbol,
+                    frequency=rq_interval,
+                    fields=fields,
+                    start_date=start,
+                    end_date=end,
+                    adjust_type="none"
+                )
+        except ValueError:  # 沪深交易所期权会报错，需要去掉交易所后缀
+            s, e = rq_symbol.split('.')
+            rq_symbol: str = s
+            df: DataFrame = get_price(
+                rq_symbol,
+                frequency=rq_interval,
+                fields=fields,
+                start_date=start,
+                end_date=end,
+                adjust_type="none"
+            )
 
         data: List[BarData] = []
 
