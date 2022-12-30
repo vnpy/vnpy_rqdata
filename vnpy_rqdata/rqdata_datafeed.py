@@ -141,7 +141,11 @@ class RqdataDatafeed(BaseDatafeed):
         start: datetime = req.start
         end: datetime = req.end
 
-        rq_symbol: str = to_rq_symbol(symbol, exchange)
+        # 股票期权不添加交易所后缀
+        if exchange in [Exchange.SSE, Exchange.SZSE] and symbol in self.symbols:
+            rq_symbol: str = symbol
+        else:
+            rq_symbol: str = to_rq_symbol(symbol, exchange)
 
         rq_interval: str = INTERVAL_VT2RQ.get(interval)
         if not rq_interval:
@@ -208,7 +212,12 @@ class RqdataDatafeed(BaseDatafeed):
         start: datetime = req.start
         end: datetime = req.end
 
-        rq_symbol: str = to_rq_symbol(symbol, exchange)
+        # 股票期权不添加交易所后缀
+        if exchange in [Exchange.SSE, Exchange.SZSE] and symbol in self.symbols:
+            rq_symbol: str = symbol
+        else:
+            rq_symbol: str = to_rq_symbol(symbol, exchange)
+
         if rq_symbol not in self.symbols:
             return None
 
