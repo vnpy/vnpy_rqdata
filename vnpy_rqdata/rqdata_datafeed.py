@@ -1,12 +1,12 @@
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Callable
 
 from numpy import ndarray
 from pandas import DataFrame
 from rqdatac import init
 from rqdatac.services.get_price import get_price
 from rqdatac.services.basic import all_instruments
-from rqdatac.share.errors import AuthenticationFailed
+from rqdatac.share.errors import RQDataError
 
 from vnpy.trader.setting import SETTINGS
 from vnpy.trader.constant import Exchange, Interval
@@ -102,12 +102,19 @@ class RqdataDatafeed(BaseDatafeed):
         self.inited: bool = False
         self.symbols: ndarray = None
 
-    def init(self) -> bool:
+    def init(self, output: Callable = None) -> bool:
         """初始化"""
+        if not output:
+            output = print
+
         if self.inited:
             return True
 
-        if not self.username or not self.password:
+        if not self.username:
+            output("RQData数据服务初始化失败：用户名为空！")
+
+        if not self.password:
+            output("RQData数据服务初始化失败：密码为空！")
             return False
 
         try:
@@ -122,16 +129,20 @@ class RqdataDatafeed(BaseDatafeed):
 
             df: DataFrame = all_instruments()
             self.symbols = df["order_book_id"].values
-        except (RuntimeError, AuthenticationFailed):
+        except RQDataError as ex:
+            output(f"RQData数据服务初始化失败：{ex}")
+            return False
+        except RuntimeError as ex:
+            output(f"发生运行时错误：{ex}")
             return False
 
         self.inited = True
         return True
 
-    def query_bar_history(self, req: HistoryRequest) -> Optional[List[BarData]]:
+    def query_bar_history(self, req: HistoryRequest, output: Callable = None) -> Optional[List[BarData]]:
         """查询K线数据"""
         if not self.inited:
-            n: bool = self.init()
+            n: bool = self.init(output)
             if not n:
                 return []
 
@@ -200,10 +211,10 @@ class RqdataDatafeed(BaseDatafeed):
 
         return data
 
-    def query_tick_history(self, req: HistoryRequest) -> Optional[List[TickData]]:
+    def query_tick_history(self, req: HistoryRequest, output: Callable = None) -> Optional[List[TickData]]:
         """查询Tick数据"""
         if not self.inited:
-            n: bool = self.init()
+            n: bool = self.init(output)
             if not n:
                 return []
 
