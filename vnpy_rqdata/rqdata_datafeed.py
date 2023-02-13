@@ -102,11 +102,8 @@ class RqdataDatafeed(BaseDatafeed):
         self.inited: bool = False
         self.symbols: ndarray = None
 
-    def init(self, output: Callable = None) -> bool:
+    def init(self, output: Callable = print) -> bool:
         """初始化"""
-        if not output:
-            output = print
-
         if self.inited:
             return True
 
@@ -140,7 +137,7 @@ class RqdataDatafeed(BaseDatafeed):
         self.inited = True
         return True
 
-    def query_bar_history(self, req: HistoryRequest, output: Callable = None) -> Optional[List[BarData]]:
+    def query_bar_history(self, req: HistoryRequest, output: Callable = print) -> Optional[List[BarData]]:
         """查询K线数据"""
         if not self.inited:
             n: bool = self.init(output)
@@ -212,7 +209,7 @@ class RqdataDatafeed(BaseDatafeed):
 
         return data
 
-    def query_tick_history(self, req: HistoryRequest, output: Callable = None) -> Optional[List[TickData]]:
+    def query_tick_history(self, req: HistoryRequest, output: Callable = print) -> Optional[List[TickData]]:
         """查询Tick数据"""
         if not self.inited:
             n: bool = self.init(output)
