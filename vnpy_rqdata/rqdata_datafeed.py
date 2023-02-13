@@ -112,6 +112,7 @@ class RqdataDatafeed(BaseDatafeed):
 
         if not self.username:
             output("RQData数据服务初始化失败：用户名为空！")
+            return False
 
         if not self.password:
             output("RQData数据服务初始化失败：密码为空！")
