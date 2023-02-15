@@ -155,7 +155,7 @@ class RqdataGateway(BaseGateway):
                     symbol, rq_exchange = tp.order_book_id.split(".")
                     exchange: Exchange = EXCHANGE_RQDATA2VT.get(rq_exchange, None)
                 else:
-                    symbol: str = tp.trading_code
+                    symbol: str = tp.order_book_id
                     exchange: Exchange = EXCHANGE_RQDATA2VT.get(tp.exchange, None)
 
                 if not exchange:
