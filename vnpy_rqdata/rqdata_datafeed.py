@@ -133,6 +133,9 @@ class RqdataDatafeed(BaseDatafeed):
         except RuntimeError as ex:
             output(f"发生运行时错误：{ex}")
             return False
+        except Exception as ex:
+            output(f"发生未知异常：{ex}")
+            return False
 
         self.inited = True
         return True
