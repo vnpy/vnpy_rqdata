@@ -62,10 +62,13 @@ def to_rq_symbol(symbol: str, exchange: Exchange) -> str:
             if time_str in ["88", "888", "99", "889"]:
                 return symbol
 
+            # 提取年月
             year: str = symbol[count]
             month: str = symbol[count + 1:]
 
-            if year == "9":
+            # 如果年份各位比当前的大，则说明是10-19年区间
+            current_dt: datetime = datetime.now()
+            if int(year) > int(str(current_dt.year)[-1]):
                 year = "1" + year
             else:
                 year = "2" + year
