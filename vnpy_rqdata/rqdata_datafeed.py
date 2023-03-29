@@ -30,7 +30,7 @@ INTERVAL_ADJUSTMENT_MAP: Dict[Interval, timedelta] = {
 CHINA_TZ = ZoneInfo("Asia/Shanghai")
 
 
-def to_rq_symbol(symbol: str, exchange: Exchange) -> str:
+def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
     """将交易所代码转换为米筐代码"""
     # 股票
     if exchange in [Exchange.SSE, Exchange.SZSE]:
@@ -55,6 +55,7 @@ def to_rq_symbol(symbol: str, exchange: Exchange) -> str:
 
         # 期货
         if time_str.isdigit():
+            # 只有郑商所需要特殊处理
             if exchange is not Exchange.CZCE:
                 return symbol.upper()
 
@@ -66,14 +67,14 @@ def to_rq_symbol(symbol: str, exchange: Exchange) -> str:
             year: str = symbol[count]
             month: str = symbol[count + 1:]
 
-            # 如果年份各位比当前的大，则说明是10-19年区间
-            current_dt: datetime = datetime.now()
-            if int(year) > int(str(current_dt.year)[-1]):
-                year = "1" + year
-            else:
-                year = "2" + year
+            guess_1: str = f"{product}1{year}{month}".upper()
+            guess_2: str = f"{product}2{year}{month}".upper()
 
-            rq_symbol: str = f"{product}{year}{month}".upper()
+            # 优先尝试20年后的合约
+            if guess_2 in all_symbols:
+                rq_symbol: str = guess_2
+            else:
+                rq_symbol: str = guess_1
         # 期权
         else:
             if exchange in [Exchange.CFFEX, Exchange.DCE, Exchange.SHFE]:
@@ -82,12 +83,14 @@ def to_rq_symbol(symbol: str, exchange: Exchange) -> str:
                 year: str = symbol[count]
                 suffix: str = symbol[count + 1:]
 
-                if year == "9":
-                    year = "1" + year
-                else:
-                    year = "2" + year
+                guess_1: str = f"{product}1{year}{suffix}".upper()
+                guess_2: str = f"{product}2{year}{suffix}".upper()
 
-                rq_symbol: str = f"{product}{year}{suffix}".upper()
+                # 优先尝试20年后的合约
+                if guess_2 in all_symbols:
+                    rq_symbol: str = guess_2
+                else:
+                    rq_symbol: str = guess_1
     else:
         rq_symbol: str = f"{symbol}.{exchange.value}"
 
@@ -160,11 +163,17 @@ class RqdataDatafeed(BaseDatafeed):
         if exchange in [Exchange.SSE, Exchange.SZSE] and symbol in self.symbols:
             rq_symbol: str = symbol
         else:
-            rq_symbol: str = to_rq_symbol(symbol, exchange)
+            rq_symbol: str = to_rq_symbol(symbol, exchange, self.symbols)
+
+        # 检查查询的代码在范围内
+        if rq_symbol not in self.symbols:
+            output(f"RQData查询K线数据失败：不支持的合约代码{req.vt_symbol}")
+            return []
 
         rq_interval: str = INTERVAL_VT2RQ.get(interval)
         if not rq_interval:
-            return None
+            output(f"RQData查询K线数据失败：不支持的时间周期{req.interval.value}")
+            return []
 
         # 为了将米筐时间戳（K线结束时点）转换为VeighNa时间戳（K线开始时点）
         adjustment: timedelta = INTERVAL_ADJUSTMENT_MAP[interval]
@@ -231,10 +240,11 @@ class RqdataDatafeed(BaseDatafeed):
         if exchange in [Exchange.SSE, Exchange.SZSE] and symbol in self.symbols:
             rq_symbol: str = symbol
         else:
-            rq_symbol: str = to_rq_symbol(symbol, exchange)
+            rq_symbol: str = to_rq_symbol(symbol, exchange, self.symbols)
 
         if rq_symbol not in self.symbols:
-            return None
+            output(f"RQData查询Tick数据失败：不支持的合约代码{req.vt_symbol}")
+            return []
 
         # 为了查询夜盘数据
         end += timedelta(1)
