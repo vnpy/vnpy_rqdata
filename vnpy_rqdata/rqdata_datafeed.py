@@ -33,19 +33,26 @@ CHINA_TZ = ZoneInfo("Asia/Shanghai")
 def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
     """将交易所代码转换为米筐代码"""
     # 股票
-    if exchange in [Exchange.SSE, Exchange.SZSE]:
+    if exchange in {Exchange.SSE, Exchange.SZSE}:
         if exchange == Exchange.SSE:
             rq_symbol: str = f"{symbol}.XSHG"
         else:
             rq_symbol: str = f"{symbol}.XSHE"
     # 金交所现货
-    elif exchange in [Exchange.SGE]:
+    elif exchange == Exchange.SGE:
         for char in ["(", ")", "+"]:
             symbol: str = symbol.replace(char, "")
         symbol = symbol.upper()
         rq_symbol: str = f"{symbol}.SGEX"
     # 期货和期权
-    elif exchange in [Exchange.SHFE, Exchange.CFFEX, Exchange.DCE, Exchange.CZCE, Exchange.INE]:
+    elif exchange in {
+        Exchange.CFFEX,
+        Exchange.SHFE,
+        Exchange.DCE,
+        Exchange.CZCE,
+        Exchange.INE,
+        Exchange.GFEX
+    }:
         for count, word in enumerate(symbol):
             if word.isdigit():
                 break
@@ -77,7 +84,13 @@ def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
                 rq_symbol: str = guess_1
         # 期权
         else:
-            if exchange in [Exchange.CFFEX, Exchange.DCE, Exchange.SHFE]:
+            if exchange in {
+                Exchange.CFFEX,
+                Exchange.DCE,
+                Exchange.SHFE,
+                Exchange.INE,
+                Exchange.GFEX
+            }:
                 rq_symbol: str = symbol.replace("-", "").upper()
             elif exchange == Exchange.CZCE:
                 year: str = symbol[count]
