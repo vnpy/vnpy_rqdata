@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Set, Optional, Callable
 
 from numpy import ndarray
 from pandas import DataFrame
 from rqdatac import init
 from rqdatac.services.get_price import get_price
+from rqdatac.services.future import get_dominant_price
 from rqdatac.services.basic import all_instruments
 from rqdatac.share.errors import RQDataError
 
@@ -25,6 +26,15 @@ INTERVAL_ADJUSTMENT_MAP: Dict[Interval, timedelta] = {
     Interval.MINUTE: timedelta(minutes=1),
     Interval.HOUR: timedelta(hours=1),
     Interval.DAILY: timedelta()         # no need to adjust for daily bar
+}
+
+FUTURES_EXCHANGES: Set[Exchange] = {
+    Exchange.CFFEX,
+    Exchange.SHFE,
+    Exchange.CZCE,
+    Exchange.DCE,
+    Exchange.INE,
+    Exchange.GFEX
 }
 
 CHINA_TZ = ZoneInfo("Asia/Shanghai")
@@ -160,6 +170,14 @@ class RqdataDatafeed(BaseDatafeed):
         return True
 
     def query_bar_history(self, req: HistoryRequest, output: Callable = print) -> Optional[List[BarData]]:
+        """查询K线数据"""
+        # 期货品种且代码中没有数字（非具体合约），则查询主力连续
+        if req.exchange in FUTURES_EXCHANGES and req.symbol.isalpha():
+            return self._query_dominant_history(req, output)
+        else:
+            return self._query_bar_history(req, output)
+
+    def _query_bar_history(self, req: HistoryRequest, output: Callable = print) -> Optional[List[BarData]]:
         """查询K线数据"""
         if not self.inited:
             n: bool = self.init(output)
@@ -354,5 +372,73 @@ class RqdataDatafeed(BaseDatafeed):
                 )
 
                 data.append(tick)
+
+        return data
+
+    def _query_dominant_history(self, req: HistoryRequest, output: Callable = print) -> Optional[List[BarData]]:
+        """查询期货主力K线数据"""
+        if not self.inited:
+            n: bool = self.init(output)
+            if not n:
+                return []
+
+        symbol: str = req.symbol
+        exchange: Exchange = req.exchange
+        interval: Interval = req.interval
+        start: datetime = req.start
+        end: datetime = req.end
+
+        rq_interval: str = INTERVAL_VT2RQ.get(interval)
+        if not rq_interval:
+            output(f"RQData查询K线数据失败：不支持的时间周期{req.interval.value}")
+            return []
+
+        # 为了将米筐时间戳（K线结束时点）转换为VeighNa时间戳（K线开始时点）
+        adjustment: timedelta = INTERVAL_ADJUSTMENT_MAP[interval]
+
+        # 为了查询夜盘数据
+        end += timedelta(1)
+
+        # 只对衍生品合约才查询持仓量数据
+        fields: list = ["open", "high", "low", "close", "volume", "total_turnover"]
+        if not symbol.isdigit():
+            fields.append("open_interest")
+
+        df: DataFrame = get_dominant_price(
+            symbol.upper(),                         # 合约代码用大写
+            frequency=rq_interval,
+            fields=fields,
+            start_date=start,
+            end_date=end,
+            adjust_type="pre",                      # 前复权
+            adjust_method="prev_close_ratio"        # 切换前一日收盘价比例复权
+        )
+
+        data: List[BarData] = []
+
+        if df is not None:
+            # 填充NaN为0
+            df.fillna(0, inplace=True)
+
+            for row in df.itertuples():
+                dt: datetime = row.Index[1].to_pydatetime() - adjustment
+                dt: datetime = dt.replace(tzinfo=CHINA_TZ)
+
+                bar: BarData = BarData(
+                    symbol=symbol,
+                    exchange=exchange,
+                    interval=interval,
+                    datetime=dt,
+                    open_price=round_to(row.open, 0.000001),
+                    high_price=round_to(row.high, 0.000001),
+                    low_price=round_to(row.low, 0.000001),
+                    close_price=round_to(row.close, 0.000001),
+                    volume=row.volume,
+                    turnover=row.total_turnover,
+                    open_interest=getattr(row, "open_interest", 0),
+                    gateway_name="RQ"
+                )
+
+                data.append(bar)
 
         return data
