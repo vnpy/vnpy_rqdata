@@ -77,7 +77,7 @@ def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
                 return symbol.upper()
 
             # 检查是否为连续合约或者指数合约
-            if time_str in ["88", "888", "99", "889"]:
+            if time_str in ["88", "888", "99", "889", "88A2"]:
                 return symbol
 
             # 提取年月
