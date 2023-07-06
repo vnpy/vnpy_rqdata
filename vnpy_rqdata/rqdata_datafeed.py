@@ -229,8 +229,6 @@ class RqdataDatafeed(BaseDatafeed):
             adjust_type="none"
         )
 
-        print(df)
-
         data: List[BarData] = []
 
         if df is not None:
