@@ -77,7 +77,7 @@ def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
                 return symbol.upper()
 
             # 检查是否为连续合约或者指数合约
-            if time_str in ["88", "888", "99", "889", "88A2"]:
+            if time_str in ["88", "888", "99", "889"]:
                 return symbol
 
             # 提取年月
@@ -94,6 +94,9 @@ def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
                 rq_symbol: str = guess_1
         # 期权
         else:
+            if time_str == "88A2":
+                return symbol
+
             if exchange in {
                 Exchange.CFFEX,
                 Exchange.DCE,
@@ -225,6 +228,8 @@ class RqdataDatafeed(BaseDatafeed):
             end_date=end,
             adjust_type="none"
         )
+
+        print(df)
 
         data: List[BarData] = []
 
