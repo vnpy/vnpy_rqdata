@@ -73,7 +73,7 @@ class RqdataGateway(BaseGateway):
 
         self.subscribed: Set[str] = set()
         self.futures_map: Dict[str, Tuple[str, Exchange]] = {}      # 期货代码交易所映射信息
-        self.name_map: Dict[str, str] = {}
+        self.symbol_map: Dict[str, str] = {}
 
     def connect(self, setting: dict) -> None:
         """连接交易接口"""
@@ -151,36 +151,34 @@ class RqdataGateway(BaseGateway):
             df: DataFrame = all_instruments(type=t)
 
             for tp in df.itertuples():
-                if "." in tp.order_book_id:
+                if t == "INDX":
                     symbol, rq_exchange = tp.order_book_id.split(".")
                     exchange: Exchange = EXCHANGE_RQDATA2VT.get(rq_exchange, None)
                 else:
-                    symbol: str = tp.order_book_id
+                    symbol: str = tp.trading_code
                     exchange: Exchange = EXCHANGE_RQDATA2VT.get(tp.exchange, None)
 
                 if not exchange:
                     continue
 
+                min_volume: float = tp.round_lot
+
                 product: Product = PRODUCT_MAP[tp.type]
                 if product == Product.EQUITY:
                     size: int = 1
                     pricetick: float = 0.01
-                    min_volume: int = 100
                     product_name: str = "股票"
                 elif product == Product.FUND:
                     size: int = 1
                     pricetick: float = 0.001
-                    min_volume: int = 100
                     product_name: str = "基金"
                 elif product == Product.INDEX:
                     size: int = 1
                     pricetick: float = 0.01
-                    min_volume: int = 1
                     product_name: str = "指数"
                 elif product == Product.FUTURES:
                     size: int = tp.contract_multiplier
                     pricetick: float = 0.01
-                    min_volume: int = 1
                     product_name: str = "期货"
 
                 contract = ContractData(
@@ -195,23 +193,23 @@ class RqdataGateway(BaseGateway):
                 )
                 self.on_contract(contract)
 
-                self.name_map[contract.vt_symbol] = contract.name
+                self.symbol_map[tp.order_book_id] = contract
 
             self.write_log(f"{product_name}合约信息查询成功")
 
     def handle_msg(self, data: dict) -> None:
         """处理行情推送"""
-        if "." in data["order_book_id"]:
-            symbol, rq_exchange = data["order_book_id"].split(".")
-            exchange: Exchange = EXCHANGE_RQDATA2VT[rq_exchange]
-        else:
-            symbol, exchange = self.futures_map[data["order_book_id"]]
+        contract: ContractData = self.symbol_map.get(data["order_book_id"], None)
+        if not contract:
+            self.write_log(f"收到不支持合约{data['order_book_id']}的行情推送")
+            return
 
         dt: datetime = datetime.strptime(str(data["datetime"]), "%Y%m%d%H%M%S%f")
         dt = dt.replace(tzinfo=CHINA_TZ)
         tick: TickData = TickData(
-            symbol=symbol,
-            exchange=exchange,
+            symbol=contract.symbol,
+            exchange=contract.exchange,
+            name=contract.name,
             datetime=dt,
             volume=data["volume"],
             turnover=data["total_turnover"],
@@ -225,8 +223,6 @@ class RqdataGateway(BaseGateway):
             pre_close=data["prev_close"],
             gateway_name=self.gateway_name
         )
-
-        tick.name = self.name_map[tick.vt_symbol]
 
         if "bid" in data:
             bp: List[float] = data["bid"]
