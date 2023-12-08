@@ -5,9 +5,9 @@
 </p>
 
 <p align="center">
-    <img src ="https://img.shields.io/badge/version-2.10.15.3-blueviolet.svg"/>
+    <img src ="https://img.shields.io/badge/version-2.11.11.4-blueviolet.svg"/>
     <img src ="https://img.shields.io/badge/platform-windows|linux|macos-yellow.svg"/>
-    <img src ="https://img.shields.io/badge/python-3.7|3.8|3.9|3.10-blue.svg" />
+    <img src ="https://img.shields.io/badge/python-3.8|3.9|3.10|3.11|3.12-blue.svg" />
     <img src ="https://img.shields.io/github/license/vnpy/vnpy.svg?color=orange"/>
 </p>
 
@@ -21,6 +21,7 @@
   * DCE：大连商品交易所
   * CZCE：郑州商品交易所
   * INE：上海国际能源交易中心
+  * GFEX：广州期货交易所
 * 贵金属现货：
   * SGE：上海黄金交易所
 * 股票和ETF期权：
@@ -32,7 +33,7 @@
 
 ## 安装
 
-安装环境推荐基于3.6.0版本以上的【[**VeighNa Studio**](https://www.vnpy.com)】。
+安装环境推荐基于3.9.0版本以上的【[**VeighNa Studio**](https://www.vnpy.com)】。
 
 直接使用pip命令：
 
