@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 from typing import Dict, List, Set, Optional, Callable
 
@@ -25,7 +26,7 @@ INTERVAL_VT2RQ: Dict[Interval, str] = {
 INTERVAL_ADJUSTMENT_MAP: Dict[Interval, timedelta] = {
     Interval.MINUTE: timedelta(minutes=1),
     Interval.HOUR: timedelta(hours=1),
-    Interval.DAILY: timedelta()         # no need to adjust for daily bar
+    Interval.DAILY: timedelta(),  # no need to adjust for daily bar
 }
 
 FUTURES_EXCHANGES: Set[Exchange] = {
@@ -34,7 +35,7 @@ FUTURES_EXCHANGES: Set[Exchange] = {
     Exchange.CZCE,
     Exchange.DCE,
     Exchange.INE,
-    Exchange.GFEX
+    Exchange.GFEX,
 }
 
 CHINA_TZ = ZoneInfo("Asia/Shanghai")
@@ -55,14 +56,8 @@ def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
         symbol = symbol.upper()
         rq_symbol: str = f"{symbol}.SGEX"
     # 期货和期权
-    elif exchange in {
-        Exchange.CFFEX,
-        Exchange.SHFE,
-        Exchange.DCE,
-        Exchange.CZCE,
-        Exchange.INE,
-        Exchange.GFEX
-    }:
+    elif exchange in {Exchange.CFFEX, Exchange.SHFE, Exchange.DCE, Exchange.CZCE, Exchange.INE, Exchange.GFEX}:
+        count = 0
         for count, word in enumerate(symbol):
             if word.isdigit():
                 break
@@ -82,45 +77,36 @@ def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
 
             # 提取年月
             year: str = symbol[count]
-            month: str = symbol[count + 1:]
+            month: str = symbol[count + 1 :]
 
             guess_1: str = f"{product}1{year}{month}".upper()
             guess_2: str = f"{product}2{year}{month}".upper()
 
             # 优先尝试20年后的合约
             if guess_2 in all_symbols:
-                rq_symbol: str = guess_2
+                return guess_2
             else:
-                rq_symbol: str = guess_1
+                return guess_1
         # 期权以及期货次主力连续合约
         else:
             if time_str == "88A2":
                 return symbol
 
-            if exchange in {
-                Exchange.CFFEX,
-                Exchange.DCE,
-                Exchange.SHFE,
-                Exchange.INE,
-                Exchange.GFEX
-            }:
-                rq_symbol: str = symbol.replace("-", "").upper()
+            if exchange in {Exchange.CFFEX, Exchange.DCE, Exchange.SHFE, Exchange.INE, Exchange.GFEX}:
+                return symbol.replace("-", "").upper()
             elif exchange == Exchange.CZCE:
                 year: str = symbol[count]
-                suffix: str = symbol[count + 1:]
+                suffix: str = symbol[count + 1 :]
 
                 guess_1: str = f"{product}1{year}{suffix}".upper()
                 guess_2: str = f"{product}2{year}{suffix}".upper()
 
                 # 优先尝试20年后的合约
                 if guess_2 in all_symbols:
-                    rq_symbol: str = guess_2
-                else:
-                    rq_symbol: str = guess_1
+                    return guess_2
+                return guess_1
     else:
-        rq_symbol: str = f"{symbol}.{exchange.value}"
-
-    return rq_symbol
+        return f"{symbol}.{exchange.value}"
 
 
 class RqdataDatafeed(BaseDatafeed):
@@ -132,7 +118,7 @@ class RqdataDatafeed(BaseDatafeed):
         self.password: str = SETTINGS["datafeed.password"]
 
         self.inited: bool = False
-        self.symbols: ndarray = None
+        self.symbols: Optional[ndarray] = None
 
     def init(self, output: Callable = print) -> bool:
         """初始化"""
@@ -154,7 +140,7 @@ class RqdataDatafeed(BaseDatafeed):
                 ("rqdatad-pro.ricequant.com", 16011),
                 use_pool=True,
                 max_pool_size=1,
-                auto_load_plugins=False
+                auto_load_plugins=False,
             )
 
             df: DataFrame = all_instruments()
@@ -221,12 +207,7 @@ class RqdataDatafeed(BaseDatafeed):
             fields.append("open_interest")
 
         df: DataFrame = get_price(
-            rq_symbol,
-            frequency=rq_interval,
-            fields=fields,
-            start_date=start,
-            end_date=end,
-            adjust_type="none"
+            rq_symbol, frequency=rq_interval, fields=fields, start_date=start, end_date=end, adjust_type="none"
         )
 
         data: List[BarData] = []
@@ -251,7 +232,7 @@ class RqdataDatafeed(BaseDatafeed):
                     volume=row.volume,
                     turnover=row.total_turnover,
                     open_interest=getattr(row, "open_interest", 0),
-                    gateway_name="RQ"
+                    gateway_name="RQ",
                 )
 
                 data.append(bar)
@@ -319,12 +300,7 @@ class RqdataDatafeed(BaseDatafeed):
             fields.append("open_interest")
 
         df: DataFrame = get_price(
-            rq_symbol,
-            frequency="tick",
-            fields=fields,
-            start_date=start,
-            end_date=end,
-            adjust_type="none"
+            rq_symbol, frequency="tick", fields=fields, start_date=start, end_date=end, adjust_type="none"
         )
 
         data: List[TickData] = []
@@ -371,7 +347,7 @@ class RqdataDatafeed(BaseDatafeed):
                     ask_volume_3=row.a3_v,
                     ask_volume_4=row.a4_v,
                     ask_volume_5=row.a5_v,
-                    gateway_name="RQ"
+                    gateway_name="RQ",
                 )
 
                 data.append(tick)
@@ -408,13 +384,13 @@ class RqdataDatafeed(BaseDatafeed):
             fields.append("open_interest")
 
         df: DataFrame = get_dominant_price(
-            symbol.upper(),                         # 合约代码用大写
+            symbol.upper(),  # 合约代码用大写
             frequency=rq_interval,
             fields=fields,
             start_date=start,
             end_date=end,
-            adjust_type="pre",                      # 前复权
-            adjust_method="prev_close_ratio"        # 切换前一日收盘价比例复权
+            adjust_type="pre",  # 前复权
+            adjust_method="prev_close_ratio",  # 切换前一日收盘价比例复权
         )
 
         data: List[BarData] = []
@@ -439,7 +415,7 @@ class RqdataDatafeed(BaseDatafeed):
                     volume=row.volume,
                     turnover=row.total_turnover,
                     open_interest=getattr(row, "open_interest", 0),
-                    gateway_name="RQ"
+                    gateway_name="RQ",
                 )
 
                 data.append(bar)

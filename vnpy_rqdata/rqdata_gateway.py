@@ -3,22 +3,12 @@ from typing import Dict, List, Set, Tuple
 from datetime import datetime
 
 from pandas import DataFrame
-from rqdatac import (
-    LiveMarketDataClient,
-    init,
-    all_instruments
-)
+from rqdatac import LiveMarketDataClient, init, all_instruments
 
 from vnpy.event import EventEngine
 from vnpy.trader.gateway import BaseGateway
 from vnpy.trader.constant import Exchange, Product
-from vnpy.trader.object import (
-    SubscribeRequest,
-    OrderRequest,
-    CancelRequest,
-    TickData,
-    ContractData
-)
+from vnpy.trader.object import SubscribeRequest, OrderRequest, CancelRequest, TickData, ContractData
 from vnpy.trader.utility import ZoneInfo
 
 
@@ -33,7 +23,7 @@ EXCHANGE_VT2RQDATA = {
     Exchange.DCE: "DCE",
     Exchange.CZCE: "CZCE",
     Exchange.INE: "INE",
-    Exchange.GFEX: "GFEX"
+    Exchange.GFEX: "GFEX",
 }
 EXCHANGE_RQDATA2VT = {v: k for k, v in EXCHANGE_VT2RQDATA.items()}
 
@@ -47,7 +37,7 @@ PRODUCT_MAP = {
     "Future": Product.FUTURES,
     "Option": Product.OPTION,
     "Convertible": Product.BOND,
-    "Repo": Product.BOND
+    "Repo": Product.BOND,
 }
 
 
@@ -58,10 +48,7 @@ class RqdataGateway(BaseGateway):
 
     default_name: str = "RQDATA"
 
-    default_setting: Dict[str, str] = {
-        "用户名": "",
-        "密码": ""
-    }
+    default_setting: Dict[str, str] = {"用户名": "", "密码": ""}
 
     exchanges: List[str] = list(EXCHANGE_VT2RQDATA.keys())
 
@@ -72,7 +59,7 @@ class RqdataGateway(BaseGateway):
         self.thread: Thread = None
 
         self.subscribed: Set[str] = set()
-        self.futures_map: Dict[str, Tuple[str, Exchange]] = {}      # 期货代码交易所映射信息
+        self.futures_map: Dict[str, Tuple[str, Exchange]] = {}  # 期货代码交易所映射信息
         self.symbol_map: Dict[str, str] = {}
 
     def connect(self, setting: dict) -> None:
@@ -189,7 +176,7 @@ class RqdataGateway(BaseGateway):
                     size=size,
                     pricetick=pricetick,
                     min_volume=min_volume,
-                    gateway_name=self.gateway_name
+                    gateway_name=self.gateway_name,
                 )
                 self.on_contract(contract)
 
@@ -221,7 +208,7 @@ class RqdataGateway(BaseGateway):
             high_price=data["high"],
             low_price=data["low"],
             pre_close=data["prev_close"],
-            gateway_name=self.gateway_name
+            gateway_name=self.gateway_name,
         )
 
         if "bid" in data:
