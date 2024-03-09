@@ -1,5 +1,4 @@
-import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from typing import Dict, List, Set, Optional, Callable
 
 from numpy import ndarray
@@ -8,6 +7,7 @@ from rqdatac import init
 from rqdatac.services.get_price import get_price
 from rqdatac.services.future import get_dominant_price
 from rqdatac.services.basic import all_instruments
+from rqdatac.services.calendar import get_next_trading_date, get_latest_trading_date
 from rqdatac.share.errors import RQDataError
 
 from vnpy.trader.setting import SETTINGS
@@ -46,15 +46,14 @@ def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
     # 股票
     if exchange in {Exchange.SSE, Exchange.SZSE}:
         if exchange == Exchange.SSE:
-            rq_symbol: str = f"{symbol}.XSHG"
-        else:
-            rq_symbol: str = f"{symbol}.XSHE"
+            return f"{symbol}.XSHG"
+        return f"{symbol}.XSHE"
     # 金交所现货
     elif exchange == Exchange.SGE:
         for char in ["(", ")", "+"]:
             symbol: str = symbol.replace(char, "")
         symbol = symbol.upper()
-        rq_symbol: str = f"{symbol}.SGEX"
+        return f"{symbol}.SGEX"
     # 期货和期权
     elif exchange in {Exchange.CFFEX, Exchange.SHFE, Exchange.DCE, Exchange.CZCE, Exchange.INE, Exchange.GFEX}:
         count = 0
@@ -187,7 +186,7 @@ class RqdataDatafeed(BaseDatafeed):
 
         # 检查查询的代码在范围内
         if rq_symbol not in self.symbols:
-            output(f"RQData查询K线数据失败：不支持的合约代码{req.vt_symbol}")
+            output(f"RQData查询K线数据失败：不支持的合约代码{req.vt_symbol}(rq_symbol: {rq_symbol})")
             return []
 
         rq_interval: str = INTERVAL_VT2RQ.get(interval)
@@ -199,7 +198,15 @@ class RqdataDatafeed(BaseDatafeed):
         adjustment: timedelta = INTERVAL_ADJUSTMENT_MAP[interval]
 
         # 为了查询夜盘数据
-        end += timedelta(1)
+        # 对正常周五夜盘，查询结束日期必须为下周一，单纯+timedelta(1)不行
+        # 同时米筐的get_next_trading_date实现非常差，如果输入假日，那么直接返回输入日，并不会返回下一个交易日
+        latest_trading_date = get_latest_trading_date()
+        if end.date() != latest_trading_date:
+            query_end = get_next_trading_date(latest_trading_date, 1)
+        elif end.time() >= time(16, 0):
+            query_end = get_next_trading_date(end.date(), 1)
+        else:
+            query_end = end
 
         # 只对衍生品合约才查询持仓量数据
         fields: list = ["open", "high", "low", "close", "volume", "total_turnover"]
@@ -207,17 +214,20 @@ class RqdataDatafeed(BaseDatafeed):
             fields.append("open_interest")
 
         df: DataFrame = get_price(
-            rq_symbol, frequency=rq_interval, fields=fields, start_date=start, end_date=end, adjust_type="none"
+            rq_symbol, frequency=rq_interval, fields=fields, start_date=start, end_date=query_end, adjust_type="none"
         )
 
         data: List[BarData] = []
 
-        if df is not None:
+        if df is not None and not df.empty:
+            df = df.loc[rq_symbol]
+            df.index -= adjustment
+            df = df.loc[start.replace(tzinfo=None) : end.replace(tzinfo=None)]
             # 填充NaN为0
             df.fillna(0, inplace=True)
 
             for row in df.itertuples():
-                dt: datetime = row.Index[1].to_pydatetime() - adjustment
+                dt: datetime = row.Index.to_pydatetime()
                 dt: datetime = dt.replace(tzinfo=CHINA_TZ)
 
                 bar: BarData = BarData(
@@ -234,7 +244,6 @@ class RqdataDatafeed(BaseDatafeed):
                     open_interest=getattr(row, "open_interest", 0),
                     gateway_name="RQ",
                 )
-
                 data.append(bar)
 
         return data

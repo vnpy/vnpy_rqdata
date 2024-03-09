@@ -1,9 +1,11 @@
 from threading import Thread
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set, Tuple, Optional
 from datetime import datetime
 
 from pandas import DataFrame
-from rqdatac import LiveMarketDataClient, init, all_instruments
+from rqdatac import init
+from rqdatac.services.basic import all_instruments
+from rqdatac.services.live_md_client import LiveMarketDataClient
 
 from vnpy.event import EventEngine
 from vnpy.trader.gateway import BaseGateway
@@ -55,12 +57,12 @@ class RqdataGateway(BaseGateway):
     def __init__(self, event_engine: EventEngine, gateway_name: str) -> None:
         super().__init__(event_engine, gateway_name)
 
-        self.client: LiveMarketDataClient = None
-        self.thread: Thread = None
+        self.client: Optional[LiveMarketDataClient] = None
+        self.thread: Optional[Thread] = None
 
         self.subscribed: Set[str] = set()
         self.futures_map: Dict[str, Tuple[str, Exchange]] = {}  # 期货代码交易所映射信息
-        self.symbol_map: Dict[str, str] = {}
+        self.symbol_map: Dict[str, ContractData] = {}
 
     def connect(self, setting: dict) -> None:
         """连接交易接口"""
@@ -88,7 +90,7 @@ class RqdataGateway(BaseGateway):
 
         # 订阅之前行情
         for rq_channel in self.subscribed:
-            self.clicent.subscrbie(rq_channel)
+            self.client.subscribe(rq_channel)
 
         self.write_log("RQData接口初始化成功")
 
@@ -116,15 +118,12 @@ class RqdataGateway(BaseGateway):
 
     def cancel_order(self, req: CancelRequest) -> None:
         """委托撤单"""
-        pass
 
     def query_account(self) -> None:
         """查询资金"""
-        pass
 
     def query_position(self) -> None:
         """查询持仓"""
-        pass
 
     def close(self) -> None:
         """关闭接口"""
@@ -167,6 +166,8 @@ class RqdataGateway(BaseGateway):
                     size: int = tp.contract_multiplier
                     pricetick: float = 0.01
                     product_name: str = "期货"
+                else:
+                    raise ValueError(f"不支持的产品类型{product}")
 
                 contract = ContractData(
                     symbol=symbol,
@@ -182,7 +183,7 @@ class RqdataGateway(BaseGateway):
 
                 self.symbol_map[tp.order_book_id] = contract
 
-            self.write_log(f"{product_name}合约信息查询成功")
+                self.write_log(f"{product_name}合约信息查询成功")
 
     def handle_msg(self, data: dict) -> None:
         """处理行情推送"""
