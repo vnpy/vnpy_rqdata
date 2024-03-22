@@ -7,6 +7,7 @@ from rqdatac import init
 from rqdatac.services.get_price import get_price
 from rqdatac.services.future import get_dominant_price
 from rqdatac.services.basic import all_instruments
+from rqdatac.services.calendar import get_next_trading_date
 from rqdatac.share.errors import RQDataError
 
 from vnpy.trader.setting import SETTINGS
@@ -212,9 +213,6 @@ class RqdataDatafeed(BaseDatafeed):
         # 为了将米筐时间戳（K线结束时点）转换为VeighNa时间戳（K线开始时点）
         adjustment: timedelta = INTERVAL_ADJUSTMENT_MAP[interval]
 
-        # 为了查询夜盘数据
-        end += timedelta(1)
-
         # 只对衍生品合约才查询持仓量数据
         fields: list = ["open", "high", "low", "close", "volume", "total_turnover"]
         if not symbol.isdigit():
@@ -225,7 +223,7 @@ class RqdataDatafeed(BaseDatafeed):
             frequency=rq_interval,
             fields=fields,
             start_date=start,
-            end_date=end,
+            end_date=get_next_trading_date(end),        # 为了查询夜盘数据
             adjust_type="none"
         )
 
@@ -238,6 +236,9 @@ class RqdataDatafeed(BaseDatafeed):
             for row in df.itertuples():
                 dt: datetime = row.Index[1].to_pydatetime() - adjustment
                 dt: datetime = dt.replace(tzinfo=CHINA_TZ)
+
+                if dt >= end:
+                    break
 
                 bar: BarData = BarData(
                     symbol=symbol,
@@ -280,9 +281,6 @@ class RqdataDatafeed(BaseDatafeed):
             output(f"RQData查询Tick数据失败：不支持的合约代码{req.vt_symbol}")
             return []
 
-        # 为了查询夜盘数据
-        end += timedelta(1)
-
         # 只对衍生品合约才查询持仓量数据
         fields: list = [
             "open",
@@ -323,7 +321,7 @@ class RqdataDatafeed(BaseDatafeed):
             frequency="tick",
             fields=fields,
             start_date=start,
-            end_date=end,
+            end_date=get_next_trading_date(end),        # 为了查询夜盘数据
             adjust_type="none"
         )
 
@@ -336,6 +334,9 @@ class RqdataDatafeed(BaseDatafeed):
             for row in df.itertuples():
                 dt: datetime = row.Index[1].to_pydatetime()
                 dt: datetime = dt.replace(tzinfo=CHINA_TZ)
+
+                if dt >= end:
+                    break
 
                 tick: TickData = TickData(
                     symbol=symbol,
@@ -399,9 +400,6 @@ class RqdataDatafeed(BaseDatafeed):
         # 为了将米筐时间戳（K线结束时点）转换为VeighNa时间戳（K线开始时点）
         adjustment: timedelta = INTERVAL_ADJUSTMENT_MAP[interval]
 
-        # 为了查询夜盘数据
-        end += timedelta(1)
-
         # 只对衍生品合约才查询持仓量数据
         fields: list = ["open", "high", "low", "close", "volume", "total_turnover"]
         if not symbol.isdigit():
@@ -412,7 +410,7 @@ class RqdataDatafeed(BaseDatafeed):
             frequency=rq_interval,
             fields=fields,
             start_date=start,
-            end_date=end,
+            end_date=get_next_trading_date(end),    # 为了查询夜盘数据
             adjust_type="pre",                      # 前复权
             adjust_method="prev_close_ratio"        # 切换前一日收盘价比例复权
         )
@@ -426,6 +424,9 @@ class RqdataDatafeed(BaseDatafeed):
             for row in df.itertuples():
                 dt: datetime = row.Index[1].to_pydatetime() - adjustment
                 dt: datetime = dt.replace(tzinfo=CHINA_TZ)
+
+                if dt >= end:
+                    break
 
                 bar: BarData = BarData(
                     symbol=symbol,
