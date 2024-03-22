@@ -1,5 +1,4 @@
 from threading import Thread
-from typing import Dict, List, Set, Tuple
 from datetime import datetime
 
 from pandas import DataFrame
@@ -58,12 +57,12 @@ class RqdataGateway(BaseGateway):
 
     default_name: str = "RQDATA"
 
-    default_setting: Dict[str, str] = {
+    default_setting: dict[str, str] = {
         "用户名": "",
         "密码": ""
     }
 
-    exchanges: List[str] = list(EXCHANGE_VT2RQDATA.keys())
+    exchanges: list[str] = list(EXCHANGE_VT2RQDATA.keys())
 
     def __init__(self, event_engine: EventEngine, gateway_name: str) -> None:
         super().__init__(event_engine, gateway_name)
@@ -71,9 +70,9 @@ class RqdataGateway(BaseGateway):
         self.client: LiveMarketDataClient = None
         self.thread: Thread = None
 
-        self.subscribed: Set[str] = set()
-        self.futures_map: Dict[str, Tuple[str, Exchange]] = {}      # 期货代码交易所映射信息
-        self.symbol_map: Dict[str, str] = {}
+        self.subscribed: set[str] = set()
+        self.futures_map: dict[str, tuple[str, Exchange]] = {}      # 期货代码交易所映射信息
+        self.symbol_map: dict[str, str] = {}
 
     def connect(self, setting: dict) -> None:
         """连接交易接口"""
@@ -225,10 +224,10 @@ class RqdataGateway(BaseGateway):
         )
 
         if "bid" in data:
-            bp: List[float] = data["bid"]
-            ap: List[float] = data["ask"]
-            bv: List[float] = data["bid_vol"]
-            av: List[float] = data["ask_vol"]
+            bp: list[float] = data["bid"]
+            ap: list[float] = data["ask"]
+            bv: list[float] = data["bid_vol"]
+            av: list[float] = data["ask_vol"]
 
             tick.bid_price_1 = bp[0]
             tick.bid_price_2 = bp[1]

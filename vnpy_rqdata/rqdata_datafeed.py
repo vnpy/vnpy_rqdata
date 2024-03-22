@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Dict, List, Set, Optional, Callable
+from typing import Optional, Callable
 
 from numpy import ndarray
 from pandas import DataFrame
@@ -17,19 +17,19 @@ from vnpy.trader.utility import round_to, ZoneInfo
 from vnpy.trader.datafeed import BaseDatafeed
 
 
-INTERVAL_VT2RQ: Dict[Interval, str] = {
+INTERVAL_VT2RQ: dict[Interval, str] = {
     Interval.MINUTE: "1m",
     Interval.HOUR: "60m",
     Interval.DAILY: "1d",
 }
 
-INTERVAL_ADJUSTMENT_MAP: Dict[Interval, timedelta] = {
+INTERVAL_ADJUSTMENT_MAP: dict[Interval, timedelta] = {
     Interval.MINUTE: timedelta(minutes=1),
     Interval.HOUR: timedelta(hours=1),
     Interval.DAILY: timedelta()         # no need to adjust for daily bar
 }
 
-FUTURES_EXCHANGES: Set[Exchange] = {
+FUTURES_EXCHANGES: set[Exchange] = {
     Exchange.CFFEX,
     Exchange.SHFE,
     Exchange.CZCE,
@@ -173,7 +173,7 @@ class RqdataDatafeed(BaseDatafeed):
         self.inited = True
         return True
 
-    def query_bar_history(self, req: HistoryRequest, output: Callable = print) -> Optional[List[BarData]]:
+    def query_bar_history(self, req: HistoryRequest, output: Callable = print) -> Optional[list[BarData]]:
         """查询K线数据"""
         # 期货品种且代码中没有数字（非具体合约），则查询主力连续
         if req.exchange in FUTURES_EXCHANGES and req.symbol.isalpha():
@@ -181,7 +181,7 @@ class RqdataDatafeed(BaseDatafeed):
         else:
             return self._query_bar_history(req, output)
 
-    def _query_bar_history(self, req: HistoryRequest, output: Callable = print) -> Optional[List[BarData]]:
+    def _query_bar_history(self, req: HistoryRequest, output: Callable = print) -> Optional[list[BarData]]:
         """查询K线数据"""
         if not self.inited:
             n: bool = self.init(output)
@@ -227,7 +227,7 @@ class RqdataDatafeed(BaseDatafeed):
             adjust_type="none"
         )
 
-        data: List[BarData] = []
+        data: list[BarData] = []
 
         if df is not None:
             # 填充NaN为0
@@ -259,7 +259,7 @@ class RqdataDatafeed(BaseDatafeed):
 
         return data
 
-    def query_tick_history(self, req: HistoryRequest, output: Callable = print) -> Optional[List[TickData]]:
+    def query_tick_history(self, req: HistoryRequest, output: Callable = print) -> Optional[list[TickData]]:
         """查询Tick数据"""
         if not self.inited:
             n: bool = self.init(output)
@@ -325,7 +325,7 @@ class RqdataDatafeed(BaseDatafeed):
             adjust_type="none"
         )
 
-        data: List[TickData] = []
+        data: list[TickData] = []
 
         if df is not None:
             # 填充NaN为0
@@ -379,7 +379,7 @@ class RqdataDatafeed(BaseDatafeed):
 
         return data
 
-    def _query_dominant_history(self, req: HistoryRequest, output: Callable = print) -> Optional[List[BarData]]:
+    def _query_dominant_history(self, req: HistoryRequest, output: Callable = print) -> Optional[list[BarData]]:
         """查询期货主力K线数据"""
         if not self.inited:
             n: bool = self.init(output)
@@ -415,7 +415,7 @@ class RqdataDatafeed(BaseDatafeed):
             adjust_method="prev_close_ratio"        # 切换前一日收盘价比例复权
         )
 
-        data: List[BarData] = []
+        data: list[BarData] = []
 
         if df is not None:
             # 填充NaN为0
