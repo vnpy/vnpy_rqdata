@@ -5,15 +5,15 @@
 </p>
 
 <p align="center">
-    <img src ="https://img.shields.io/badge/version-3.0.2.1-blueviolet.svg"/>
+    <img src ="https://img.shields.io/badge/version-3.1.4.0-blueviolet.svg"/>
     <img src ="https://img.shields.io/badge/platform-windows|linux|macos-yellow.svg"/>
-    <img src ="https://img.shields.io/badge/python-3.8|3.9|3.10|3.11|3.12-blue.svg" />
+    <img src ="https://img.shields.io/badge/python-3.10|3.11|3.12|3.13-blue.svg" />
     <img src ="https://img.shields.io/github/license/vnpy/vnpy.svg?color=orange"/>
 </p>
 
 ## 说明
 
-基于米筐rqdatac模块的2.10.14版本开发，支持以下中国金融市场的K线和Tick数据：
+基于米筐rqdatac模块的3.1.4版本开发，支持以下中国金融市场的K线和Tick数据：
 
 * 期货和期货期权：
   * CFFEX：中国金融期货交易所
@@ -33,7 +33,7 @@
 
 ## 安装
 
-安装环境推荐基于3.9.0版本以上的【[**VeighNa Studio**](https://www.vnpy.com)】。
+安装环境推荐基于4.0.0版本以上的【[**VeighNa Studio**](https://www.vnpy.com)】。
 
 直接使用pip命令：
 
