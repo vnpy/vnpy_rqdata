@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-from typing import Optional, Callable, cast
+from typing import cast
+from collections.abc import Callable
 
 from numpy import ndarray
 from pandas import DataFrame, Timestamp
@@ -64,7 +65,7 @@ def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
         Exchange.INE,
         Exchange.GFEX
     }:
-        for count, word in enumerate(symbol):
+        for count, word in enumerate(symbol):  # noqa: B007
             if word.isdigit():
                 break
 
@@ -172,7 +173,7 @@ class RqdataDatafeed(BaseDatafeed):
         self.inited = True
         return True
 
-    def query_bar_history(self, req: HistoryRequest, output: Callable = print) -> Optional[list[BarData]]:
+    def query_bar_history(self, req: HistoryRequest, output: Callable = print) -> list[BarData] | None:
         """查询K线数据"""
         # 期货品种且代码中没有数字（非具体合约），则查询主力连续
         if req.exchange in FUTURES_EXCHANGES and req.symbol.isalpha():
@@ -180,7 +181,7 @@ class RqdataDatafeed(BaseDatafeed):
         else:
             return self._query_bar_history(req, output)
 
-    def _query_bar_history(self, req: HistoryRequest, output: Callable = print) -> Optional[list[BarData]]:
+    def _query_bar_history(self, req: HistoryRequest, output: Callable = print) -> list[BarData] | None:
         """查询K线数据"""
         if not self.inited:
             n: bool = self.init(output)
@@ -259,7 +260,7 @@ class RqdataDatafeed(BaseDatafeed):
 
         return data
 
-    def query_tick_history(self, req: HistoryRequest, output: Callable = print) -> Optional[list[TickData]]:
+    def query_tick_history(self, req: HistoryRequest, output: Callable = print) -> list[TickData] | None:
         """查询Tick数据"""
         if not self.inited:
             n: bool = self.init(output)
@@ -380,7 +381,7 @@ class RqdataDatafeed(BaseDatafeed):
 
         return data
 
-    def _query_dominant_history(self, req: HistoryRequest, output: Callable = print) -> Optional[list[BarData]]:
+    def _query_dominant_history(self, req: HistoryRequest, output: Callable = print) -> list[BarData] | None:
         """查询期货主力K线数据"""
         if not self.inited:
             n: bool = self.init(output)
