@@ -1,5 +1,6 @@
 from threading import Thread
 from datetime import datetime
+from typing import cast
 
 from pandas import DataFrame
 from rqdatac import (
@@ -67,8 +68,8 @@ class RqdataGateway(BaseGateway):
     def __init__(self, event_engine: EventEngine, gateway_name: str) -> None:
         super().__init__(event_engine, gateway_name)
 
-        self.client: LiveMarketDataClient = None
-        self.thread: Thread = None
+        self.client: LiveMarketDataClient | None = None
+        self.thread: Thread | None = None
 
         self.subscribed: set[str] = set()
         self.futures_map: dict[str, tuple[str, Exchange]] = {}      # 期货代码交易所映射信息
@@ -112,8 +113,8 @@ class RqdataGateway(BaseGateway):
             rq_channel: str = f"tick_{req.symbol}.{rq_exchange}"
         # 期货
         else:
-            rq_symbol: str = req.symbol.upper()
-            rq_channel: str = f"tick_{rq_symbol}"
+            rq_symbol = req.symbol.upper()
+            rq_channel = f"tick_{rq_symbol}"
 
             self.futures_map[rq_symbol] = (req.symbol, req.exchange)
 
@@ -142,6 +143,8 @@ class RqdataGateway(BaseGateway):
         """关闭接口"""
         if self.client:
             self.client.close()
+
+        if self.thread:
             self.thread.join()
 
     def query_contract(self) -> None:
@@ -151,34 +154,34 @@ class RqdataGateway(BaseGateway):
 
             for tp in df.itertuples():
                 if t == "INDX":
-                    symbol, rq_exchange = tp.order_book_id.split(".")
-                    exchange: Exchange = EXCHANGE_RQDATA2VT.get(rq_exchange, None)
+                    symbol, rq_exchange = cast(str, tp.order_book_id).split(".")
+                    exchange: Exchange | None = EXCHANGE_RQDATA2VT.get(rq_exchange, None)
                 else:
-                    symbol: str = tp.trading_code
-                    exchange: Exchange = EXCHANGE_RQDATA2VT.get(tp.exchange, None)
+                    symbol = cast(str, tp.trading_code)
+                    exchange = EXCHANGE_RQDATA2VT.get(cast(str, tp.exchange), None)
 
                 if not exchange:
                     continue
 
-                min_volume: float = tp.round_lot
+                min_volume: float = cast(float, tp.round_lot)
 
-                product: Product = PRODUCT_MAP[tp.type]
+                product: Product = PRODUCT_MAP[cast(str, tp.type)]
                 if product == Product.EQUITY:
                     size: int = 1
                     pricetick: float = 0.01
                     product_name: str = "股票"
                 elif product == Product.FUND:
-                    size: int = 1
-                    pricetick: float = 0.001
-                    product_name: str = "基金"
+                    size = 1
+                    pricetick = 0.001
+                    product_name = "基金"
                 elif product == Product.INDEX:
-                    size: int = 1
-                    pricetick: float = 0.01
-                    product_name: str = "指数"
+                    size = 1
+                    pricetick = 0.01
+                    product_name = "指数"
                 elif product == Product.FUTURES:
-                    size: int = tp.contract_multiplier
-                    pricetick: float = 0.01
-                    product_name: str = "期货"
+                    size = cast(int, tp.contract_multiplier)
+                    pricetick = 0.01
+                    product_name = "期货"
 
                 contract = ContractData(
                     symbol=symbol,
@@ -192,7 +195,7 @@ class RqdataGateway(BaseGateway):
                 )
                 self.on_contract(contract)
 
-                self.symbol_map[tp.order_book_id] = contract
+                self.symbol_map[cast(str, tp.order_book_id)] = contract
 
             self.write_log(f"{product_name}合约信息查询成功")
 

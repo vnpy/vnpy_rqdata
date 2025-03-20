@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
-from typing import Optional, Callable
+from typing import Optional, Callable, cast
 
 from numpy import ndarray
-from pandas import DataFrame
+from pandas import DataFrame, Timestamp
 from rqdatac import init
 from rqdatac.services.get_price import get_price
 from rqdatac.services.future import get_dominant_price
@@ -48,13 +48,13 @@ def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
         if exchange == Exchange.SSE:
             rq_symbol: str = f"{symbol}.XSHG"
         else:
-            rq_symbol: str = f"{symbol}.XSHE"
+            rq_symbol = f"{symbol}.XSHE"
     # 金交所现货
     elif exchange == Exchange.SGE:
         for char in ["(", ")", "+"]:
-            symbol: str = symbol.replace(char, "")
+            symbol = symbol.replace(char, "")
         symbol = symbol.upper()
-        rq_symbol: str = f"{symbol}.SGEX"
+        rq_symbol = f"{symbol}.SGEX"
     # 期货和期权
     elif exchange in {
         Exchange.CFFEX,
@@ -90,9 +90,9 @@ def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
 
             # 优先尝试20年后的合约
             if guess_2 in all_symbols:
-                rq_symbol: str = guess_2
+                rq_symbol = guess_2
             else:
-                rq_symbol: str = guess_1
+                rq_symbol = guess_1
         # 期权以及期货次主力连续合约
         else:
             if time_str == "88A2":
@@ -105,21 +105,21 @@ def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
                 Exchange.INE,
                 Exchange.GFEX
             }:
-                rq_symbol: str = symbol.replace("-", "").upper()
+                rq_symbol = symbol.replace("-", "").upper()
             elif exchange == Exchange.CZCE:
-                year: str = symbol[count]
+                year = symbol[count]
                 suffix: str = symbol[count + 1:]
 
-                guess_1: str = f"{product}1{year}{suffix}".upper()
-                guess_2: str = f"{product}2{year}{suffix}".upper()
+                guess_1 = f"{product}1{year}{suffix}".upper()
+                guess_2 = f"{product}2{year}{suffix}".upper()
 
                 # 优先尝试20年后的合约
                 if guess_2 in all_symbols:
-                    rq_symbol: str = guess_2
+                    rq_symbol = guess_2
                 else:
-                    rq_symbol: str = guess_1
+                    rq_symbol = guess_1
     else:
-        rq_symbol: str = f"{symbol}.{exchange.value}"
+        rq_symbol = f"{symbol}.{exchange.value}"
 
     return rq_symbol
 
@@ -127,13 +127,12 @@ def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
 class RqdataDatafeed(BaseDatafeed):
     """米筐RQData数据服务接口"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """"""
         self.username: str = SETTINGS["datafeed.username"]
         self.password: str = SETTINGS["datafeed.password"]
 
         self.inited: bool = False
-        self.symbols: ndarray = None
 
     def init(self, output: Callable = print) -> bool:
         """初始化"""
@@ -159,7 +158,7 @@ class RqdataDatafeed(BaseDatafeed):
             )
 
             df: DataFrame = all_instruments()
-            self.symbols = df["order_book_id"].values
+            self.symbols: ndarray = df["order_book_id"].to_numpy()
         except RQDataError as ex:
             output(f"RQData数据服务初始化失败：{ex}")
             return False
@@ -198,14 +197,14 @@ class RqdataDatafeed(BaseDatafeed):
         if exchange in [Exchange.SSE, Exchange.SZSE] and symbol in self.symbols:
             rq_symbol: str = symbol
         else:
-            rq_symbol: str = to_rq_symbol(symbol, exchange, self.symbols)
+            rq_symbol = to_rq_symbol(symbol, exchange, self.symbols)
 
         # 检查查询的代码在范围内
         if rq_symbol not in self.symbols:
             output(f"RQData查询K线数据失败：不支持的合约代码{req.vt_symbol}")
             return []
 
-        rq_interval: str = INTERVAL_VT2RQ.get(interval)
+        rq_interval: str | None = INTERVAL_VT2RQ.get(interval, None)
         if not rq_interval:
             output(f"RQData查询K线数据失败：不支持的时间周期{req.interval.value}")
             return []
@@ -234,8 +233,9 @@ class RqdataDatafeed(BaseDatafeed):
             df.fillna(0, inplace=True)
 
             for row in df.itertuples():
-                dt: datetime = row.Index[1].to_pydatetime() - adjustment
-                dt: datetime = dt.replace(tzinfo=CHINA_TZ)
+                row_index: tuple[str, Timestamp] = cast(tuple[str, Timestamp], row.Index)
+                dt: datetime = row_index[1].to_pydatetime() - adjustment
+                dt = dt.replace(tzinfo=CHINA_TZ)
 
                 if dt >= end:
                     break
@@ -275,7 +275,7 @@ class RqdataDatafeed(BaseDatafeed):
         if exchange in [Exchange.SSE, Exchange.SZSE] and symbol in self.symbols:
             rq_symbol: str = symbol
         else:
-            rq_symbol: str = to_rq_symbol(symbol, exchange, self.symbols)
+            rq_symbol = to_rq_symbol(symbol, exchange, self.symbols)
 
         if rq_symbol not in self.symbols:
             output(f"RQData查询Tick数据失败：不支持的合约代码{req.vt_symbol}")
@@ -332,8 +332,9 @@ class RqdataDatafeed(BaseDatafeed):
             df.fillna(0, inplace=True)
 
             for row in df.itertuples():
-                dt: datetime = row.Index[1].to_pydatetime()
-                dt: datetime = dt.replace(tzinfo=CHINA_TZ)
+                row_index: tuple[str, Timestamp] = cast(tuple[str, Timestamp], row.Index)
+                dt: datetime = row_index[1].to_pydatetime()
+                dt = dt.replace(tzinfo=CHINA_TZ)
 
                 if dt >= end:
                     break
@@ -392,7 +393,7 @@ class RqdataDatafeed(BaseDatafeed):
         start: datetime = req.start
         end: datetime = req.end
 
-        rq_interval: str = INTERVAL_VT2RQ.get(interval)
+        rq_interval: str | None = INTERVAL_VT2RQ.get(interval, None)
         if not rq_interval:
             output(f"RQData查询K线数据失败：不支持的时间周期{req.interval.value}")
             return []
@@ -422,8 +423,9 @@ class RqdataDatafeed(BaseDatafeed):
             df.fillna(0, inplace=True)
 
             for row in df.itertuples():
-                dt: datetime = row.Index[1].to_pydatetime() - adjustment
-                dt: datetime = dt.replace(tzinfo=CHINA_TZ)
+                row_index: tuple[str, Timestamp] = cast(tuple[str, Timestamp], row.Index)
+                dt: datetime = row_index[1].to_pydatetime() - adjustment
+                dt = dt.replace(tzinfo=CHINA_TZ)
 
                 if dt >= end:
                     break
