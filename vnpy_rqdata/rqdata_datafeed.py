@@ -218,13 +218,19 @@ class RqdataDatafeed(BaseDatafeed):
         if not symbol.isdigit():
             fields.append("open_interest")
 
+        # 对于股票查询前复权K线数据
+        if rq_symbol.endswith(".XSHG") or rq_symbol.endswith(".XSHE"):
+            adjust_type: str = "pre"
+        else:
+            adjust_type = "none"
+
         df: DataFrame = get_price(
             rq_symbol,
             frequency=rq_interval,
             fields=fields,
             start_date=start,
             end_date=get_next_trading_date(end),        # 为了查询夜盘数据
-            adjust_type="none"
+            adjust_type=adjust_type
         )
 
         data: list[BarData] = []
