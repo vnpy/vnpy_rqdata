@@ -97,7 +97,7 @@ def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
         # 期权以及期货次主力连续合约
         else:
             if time_str == "88A2":
-                return symbol
+                return symbol.upper()
 
             if exchange in {
                 Exchange.CFFEX,
