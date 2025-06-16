@@ -220,7 +220,7 @@ class RqdataDatafeed(BaseDatafeed):
 
         # 对于股票查询前复权K线数据
         if rq_symbol.endswith(".XSHG") or rq_symbol.endswith(".XSHE"):
-            adjust_type: str = "pre"
+            adjust_type: str = "pre_volume"
         else:
             adjust_type = "none"
 
