@@ -28,4 +28,4 @@ from .rqdata_gateway import RqdataGateway
 __all__ = ["Datafeed", "RqdataGateway"]
 
 
-__version__ = "3.1.4.0"
+__version__ = "3.1.4.1"
