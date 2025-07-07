@@ -101,7 +101,7 @@ class RqdataGateway(BaseGateway):
 
         # 订阅之前行情
         for rq_channel in self.subscribed:
-            self.clicent.subscrbie(rq_channel)
+            self.client.subscrbie(rq_channel)
 
         self.write_log("RQData接口初始化成功")
 
