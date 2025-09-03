@@ -215,8 +215,15 @@ class RqdataDatafeed(BaseDatafeed):
 
         # 只对衍生品合约才查询持仓量数据
         fields: list = ["open", "high", "low", "close", "volume", "total_turnover"]
+
         if not symbol.isdigit():
             fields.append("open_interest")
+        elif (
+            symbol.startswith("51")         # 上交所ETF
+            or symbol.startswith("58")      # 科创版ETF
+            or symbol.startswith("159")     # 深交所ETF
+        ):
+            fields.append("iopv")
 
         # 对于股票查询前复权K线数据
         if rq_symbol.endswith(".XSHG") or rq_symbol.endswith(".XSHE"):
@@ -234,6 +241,7 @@ class RqdataDatafeed(BaseDatafeed):
         )
 
         data: list[BarData] = []
+        has_iopv: bool = "iopv" in df.columns
 
         if df is not None:
             # 填充NaN为0
@@ -261,6 +269,9 @@ class RqdataDatafeed(BaseDatafeed):
                     open_interest=getattr(row, "open_interest", 0),
                     gateway_name="RQ"
                 )
+
+                if has_iopv:
+                    bar.extra = {"iopv": row.iopv}
 
                 data.append(bar)
 
