@@ -208,21 +208,24 @@ class RqdataGateway(BaseGateway):
 
         dt: datetime = datetime.strptime(str(data["datetime"]), "%Y%m%d%H%M%S%f")
         dt = dt.replace(tzinfo=CHINA_TZ)
+
+        pre_close=data["prev_close"]
+
         tick: TickData = TickData(
             symbol=contract.symbol,
             exchange=contract.exchange,
             name=contract.name,
             datetime=dt,
-            volume=data["volume"],
-            turnover=data["total_turnover"],
+            volume=data.get("volume", 0),
+            turnover=data.get("total_turnover", 0),
             open_interest=data.get("open_interest", 0),
-            last_price=data["last"],
+            last_price=data.get("last", pre_close),
             limit_up=data.get("limit_up", 0),
             limit_down=data.get("limit_down", 0),
-            open_price=data["open"],
-            high_price=data["high"],
-            low_price=data["low"],
-            pre_close=data["prev_close"],
+            open_price=data.get("open", pre_close),
+            high_price=data.get("high", pre_close),
+            low_price=data.get("low", pre_close),
+            pre_close=pre_close,
             gateway_name=self.gateway_name
         )
 
