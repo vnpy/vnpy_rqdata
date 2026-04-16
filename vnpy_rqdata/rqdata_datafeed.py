@@ -42,6 +42,14 @@ FUTURES_EXCHANGES: set[Exchange] = {
 CHINA_TZ = ZoneInfo("Asia/Shanghai")
 
 
+def to_china_tz(dt: datetime) -> datetime:
+    """将 datetime 对象转换为 CHINA_TZ 时区"""
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=CHINA_TZ)
+    dt = dt.astimezone(CHINA_TZ)
+    return dt
+
+
 def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
     """将交易所代码转换为米筐代码"""
     # 股票
@@ -191,8 +199,8 @@ class RqdataDatafeed(BaseDatafeed):
         symbol: str = req.symbol
         exchange: Exchange = req.exchange
         interval: Interval = req.interval
-        start: datetime = req.start
-        end: datetime = req.end
+        start: datetime = to_china_tz(req.start)
+        end: datetime = to_china_tz(req.end)
 
         # 股票期权不添加交易所后缀
         if exchange in [Exchange.SSE, Exchange.SZSE] and symbol in self.symbols:
@@ -275,8 +283,8 @@ class RqdataDatafeed(BaseDatafeed):
 
         symbol: str = req.symbol
         exchange: Exchange = req.exchange
-        start: datetime = req.start
-        end: datetime = req.end
+        start: datetime = to_china_tz(req.start)
+        end: datetime = to_china_tz(req.end)
 
         # 股票期权不添加交易所后缀
         if exchange in [Exchange.SSE, Exchange.SZSE] and symbol in self.symbols:
@@ -397,8 +405,8 @@ class RqdataDatafeed(BaseDatafeed):
         symbol: str = req.symbol
         exchange: Exchange = req.exchange
         interval: Interval = req.interval
-        start: datetime = req.start
-        end: datetime = req.end
+        start: datetime = to_china_tz(req.start)
+        end: datetime = to_china_tz(req.end)
 
         rq_interval: str | None = INTERVAL_VT2RQ.get(interval, None)
         if not rq_interval:
