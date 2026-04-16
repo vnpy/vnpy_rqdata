@@ -209,7 +209,7 @@ class RqdataGateway(BaseGateway):
         dt: datetime = datetime.strptime(str(data["datetime"]), "%Y%m%d%H%M%S%f")
         dt = dt.replace(tzinfo=CHINA_TZ)
 
-        pre_close=data["prev_close"]
+        pre_close: float = data["prev_close"]
 
         tick: TickData = TickData(
             symbol=contract.symbol,
