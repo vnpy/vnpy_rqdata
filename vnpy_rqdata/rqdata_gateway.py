@@ -1,3 +1,5 @@
+"""米筐RQData实时行情网关。"""
+
 from threading import Thread
 from datetime import datetime
 from typing import cast
@@ -52,9 +54,7 @@ PRODUCT_MAP = {
 
 
 class RqdataGateway(BaseGateway):
-    """
-    VeighNa框架用于对接RQData实时行情的接口。
-    """
+    """VeighNa框架用于对接RQData实时行情的接口。"""
 
     default_name: str = "RQDATA"
 
@@ -66,6 +66,7 @@ class RqdataGateway(BaseGateway):
     exchanges: list[str] = list(EXCHANGE_VT2RQDATA.keys())
 
     def __init__(self, event_engine: EventEngine, gateway_name: str) -> None:
+        """初始化行情客户端、订阅集合和合约映射。"""
         super().__init__(event_engine, gateway_name)
 
         self.client: LiveMarketDataClient | None = None

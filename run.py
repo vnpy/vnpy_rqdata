@@ -1,3 +1,5 @@
+"""启动米筐RQData行情终端。"""
+
 from vnpy.event import EventEngine
 from vnpy.trader.engine import MainEngine
 from vnpy.trader.ui import MainWindow, create_qapp
@@ -6,7 +8,7 @@ from vnpy_rqdata import RqdataGateway
 
 
 def main():
-    """Start VeighNa Trader"""
+    """启动 VeighNa Trader。"""
     qapp = create_qapp()
 
     event_engine = EventEngine()

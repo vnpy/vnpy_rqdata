@@ -20,6 +20,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+"""米筐RQData行情网关与历史数据服务。"""
 
 from .rqdata_datafeed import RqdataDatafeed as Datafeed
 from .rqdata_gateway import RqdataGateway

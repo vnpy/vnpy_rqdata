@@ -1,3 +1,5 @@
+"""米筐RQData历史数据服务。"""
+
 from datetime import datetime, timedelta
 from typing import cast
 from collections.abc import Callable
@@ -137,7 +139,7 @@ class RqdataDatafeed(BaseDatafeed):
     """米筐RQData数据服务接口"""
 
     def __init__(self) -> None:
-        """"""
+        """读取数据服务账号，并标记尚未初始化。"""
         self.username: str = SETTINGS["datafeed.username"]
         self.password: str = SETTINGS["datafeed.password"]
 
