@@ -38,3 +38,7 @@ x64/
 
 .vscode/settings.json
 /.mypy_cache
+
+# Type checker / linter / test caches
+.ruff_cache/
+.pytest_cache/
