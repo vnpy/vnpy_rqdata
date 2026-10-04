@@ -1,7 +1,7 @@
 """米筐RQData历史数据服务。"""
 
 from datetime import datetime, timedelta
-from typing import cast
+from typing import Any, cast
 from collections.abc import Callable
 
 from numpy import ndarray
@@ -41,7 +41,7 @@ FUTURES_EXCHANGES: set[Exchange] = {
     Exchange.GFEX
 }
 
-CHINA_TZ = ZoneInfo("Asia/Shanghai")
+CHINA_TZ: ZoneInfo = ZoneInfo("Asia/Shanghai")
 
 
 def _as_float(value: object) -> float:
@@ -71,6 +71,7 @@ def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
             rq_symbol = f"{symbol}.XSHE"
     # 金交所现货
     elif exchange == Exchange.SGE:
+        char: str
         for char in ["(", ")", "+"]:
             symbol = symbol.replace(char, "")
         symbol = symbol.upper()
@@ -84,6 +85,8 @@ def to_rq_symbol(symbol: str, exchange: Exchange, all_symbols: ndarray) -> str:
         Exchange.INE,
         Exchange.GFEX
     }:
+        count: int
+        word: str
         for count, word in enumerate(symbol):  # noqa: B007
             if word.isdigit():
                 break
@@ -167,6 +170,7 @@ class RqdataDatafeed(BaseDatafeed):
             output("RQData数据服务初始化失败：密码为空！")
             return False
 
+        ex: Exception
         try:
             init(
                 self.username,
@@ -258,6 +262,8 @@ class RqdataDatafeed(BaseDatafeed):
             # 填充NaN为0
             df.fillna(0, inplace=True)
 
+            # itertuples 静态类型是 tuple，列字段无法命名
+            row: Any
             for row in df.itertuples():
                 row_index: tuple[str, Timestamp] = cast(tuple[str, Timestamp], row.Index)
                 dt: datetime = row_index[1].to_pydatetime() - adjustment
@@ -357,6 +363,8 @@ class RqdataDatafeed(BaseDatafeed):
             # 填充NaN为0
             df.fillna(0, inplace=True)
 
+            # itertuples 静态类型是 tuple，列字段无法命名
+            row: Any
             for row in df.itertuples():
                 row_index: tuple[str, Timestamp] = cast(tuple[str, Timestamp], row.Index)
                 dt: datetime = row_index[1].to_pydatetime()
@@ -448,6 +456,8 @@ class RqdataDatafeed(BaseDatafeed):
             # 填充NaN为0
             df.fillna(0, inplace=True)
 
+            # itertuples 静态类型是 tuple，列字段无法命名
+            row: Any
             for row in df.itertuples():
                 row_index: tuple[str, Timestamp] = cast(tuple[str, Timestamp], row.Index)
                 dt: datetime = row_index[1].to_pydatetime() - adjustment

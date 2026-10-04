@@ -2,7 +2,7 @@
 
 from threading import Thread
 from datetime import datetime
-from typing import cast
+from typing import Any, cast
 
 from pandas import DataFrame
 from rqdatac import (
@@ -24,10 +24,10 @@ from vnpy.trader.object import (
 from vnpy.trader.utility import ZoneInfo
 
 
-CHINA_TZ = ZoneInfo("Asia/Shanghai")
+CHINA_TZ: ZoneInfo = ZoneInfo("Asia/Shanghai")
 
 
-EXCHANGE_VT2RQDATA = {
+EXCHANGE_VT2RQDATA: dict[Exchange, str] = {
     Exchange.SSE: "XSHG",
     Exchange.SZSE: "XSHE",
     Exchange.CFFEX: "CFFEX",
@@ -37,10 +37,10 @@ EXCHANGE_VT2RQDATA = {
     Exchange.INE: "INE",
     Exchange.GFEX: "GFEX"
 }
-EXCHANGE_RQDATA2VT = {v: k for k, v in EXCHANGE_VT2RQDATA.items()}
+EXCHANGE_RQDATA2VT: dict[str, Exchange] = {v: k for k, v in EXCHANGE_VT2RQDATA.items()}
 
 
-PRODUCT_MAP = {
+PRODUCT_MAP: dict[str, Product] = {
     "CS": Product.EQUITY,
     "INDX": Product.INDEX,
     "ETF": Product.FUND,
@@ -85,6 +85,7 @@ class RqdataGateway(BaseGateway):
         username: str = setting["用户名"]
         password: str = setting["密码"]
 
+        ex: Exception
         try:
             init(username, password)
         except Exception as ex:
@@ -101,6 +102,7 @@ class RqdataGateway(BaseGateway):
         self.thread = self.client.listen(handler=self.handle_msg)
 
         # 订阅之前行情
+        rq_channel: str
         for rq_channel in self.subscribed:
             self.client.subscribe(rq_channel)
 
@@ -114,7 +116,7 @@ class RqdataGateway(BaseGateway):
             rq_channel: str = f"tick_{req.symbol}.{rq_exchange}"
         # 期货
         else:
-            rq_symbol = req.symbol.upper()
+            rq_symbol: str = req.symbol.upper()
             rq_channel = f"tick_{rq_symbol}"
 
             self.futures_map[rq_symbol] = (req.symbol, req.exchange)
@@ -150,11 +152,16 @@ class RqdataGateway(BaseGateway):
 
     def query_contract(self) -> None:
         """查询合约"""
+        t: str
         for t in ["CS", "INDX", "ETF", "Future"]:
             df: DataFrame = all_instruments(type=t)
 
+            # itertuples 静态类型是 tuple，列字段无法命名
+            tp: Any
             for tp in df.itertuples():
                 if t == "INDX":
+                    symbol: str
+                    rq_exchange: str
                     symbol, rq_exchange = cast(str, tp.order_book_id).split(".")
                     exchange: Exchange | None = EXCHANGE_RQDATA2VT.get(rq_exchange, None)
                 else:
@@ -184,7 +191,7 @@ class RqdataGateway(BaseGateway):
                     pricetick = 0.01
                     product_name = "期货"
 
-                contract = ContractData(
+                contract: ContractData = ContractData(
                     symbol=symbol,
                     exchange=exchange,
                     name=cast(str, tp.symbol),
