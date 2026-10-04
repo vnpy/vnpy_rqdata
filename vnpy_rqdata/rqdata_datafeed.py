@@ -44,6 +44,15 @@ FUTURES_EXCHANGES: set[Exchange] = {
 CHINA_TZ = ZoneInfo("Asia/Shanghai")
 
 
+def _as_float(value: object) -> float:
+    """
+    把 pandas 单元格视为 float。
+
+    itertuples 的字段在类型上是巨大联合，运行时米筐行情字段是数值。
+    """
+    return cast(float, value)
+
+
 def to_china_tz(dt: datetime) -> datetime:
     """将 datetime 对象转换为 CHINA_TZ 时区"""
     if dt.tzinfo is None:
@@ -183,7 +192,7 @@ class RqdataDatafeed(BaseDatafeed):
         self.inited = True
         return True
 
-    def query_bar_history(self, req: HistoryRequest, output: Callable = print) -> list[BarData] | None:
+    def query_bar_history(self, req: HistoryRequest, output: Callable = print) -> list[BarData]:
         """查询K线数据"""
         # 期货品种且代码中没有数字（非具体合约），则查询主力连续
         if req.exchange in FUTURES_EXCHANGES and req.symbol.isalpha():
@@ -191,7 +200,7 @@ class RqdataDatafeed(BaseDatafeed):
         else:
             return self._query_bar_history(req, output)
 
-    def _query_bar_history(self, req: HistoryRequest, output: Callable = print) -> list[BarData] | None:
+    def _query_bar_history(self, req: HistoryRequest, output: Callable = print) -> list[BarData]:
         """查询K线数据"""
         if not self.inited:
             n: bool = self.init(output)
@@ -200,9 +209,9 @@ class RqdataDatafeed(BaseDatafeed):
 
         symbol: str = req.symbol
         exchange: Exchange = req.exchange
-        interval: Interval = req.interval
+        interval: Interval = cast(Interval, req.interval)
         start: datetime = to_china_tz(req.start)
-        end: datetime = to_china_tz(req.end)
+        end: datetime = to_china_tz(cast(datetime, req.end))
 
         # 股票期权不添加交易所后缀
         if exchange in [Exchange.SSE, Exchange.SZSE] and symbol in self.symbols:
@@ -217,7 +226,7 @@ class RqdataDatafeed(BaseDatafeed):
 
         rq_interval: str | None = INTERVAL_VT2RQ.get(interval, None)
         if not rq_interval:
-            output(f"RQData查询K线数据失败：不支持的时间周期{req.interval.value}")
+            output(f"RQData查询K线数据失败：不支持的时间周期{interval.value}")
             return []
 
         # 为了将米筐时间戳（K线结束时点）转换为VeighNa时间戳（K线开始时点）
@@ -262,12 +271,12 @@ class RqdataDatafeed(BaseDatafeed):
                     exchange=exchange,
                     interval=interval,
                     datetime=dt,
-                    open_price=round_to(row.open, 0.000001),
-                    high_price=round_to(row.high, 0.000001),
-                    low_price=round_to(row.low, 0.000001),
-                    close_price=round_to(row.close, 0.000001),
-                    volume=row.volume,
-                    turnover=row.total_turnover,
+                    open_price=round_to(_as_float(row.open), 0.000001),
+                    high_price=round_to(_as_float(row.high), 0.000001),
+                    low_price=round_to(_as_float(row.low), 0.000001),
+                    close_price=round_to(_as_float(row.close), 0.000001),
+                    volume=_as_float(row.volume),
+                    turnover=_as_float(row.total_turnover),
                     open_interest=getattr(row, "open_interest", 0),
                     gateway_name="RQ"
                 )
@@ -276,7 +285,7 @@ class RqdataDatafeed(BaseDatafeed):
 
         return data
 
-    def query_tick_history(self, req: HistoryRequest, output: Callable = print) -> list[TickData] | None:
+    def query_tick_history(self, req: HistoryRequest, output: Callable = print) -> list[TickData]:
         """查询Tick数据"""
         if not self.inited:
             n: bool = self.init(output)
@@ -286,7 +295,7 @@ class RqdataDatafeed(BaseDatafeed):
         symbol: str = req.symbol
         exchange: Exchange = req.exchange
         start: datetime = to_china_tz(req.start)
-        end: datetime = to_china_tz(req.end)
+        end: datetime = to_china_tz(cast(datetime, req.end))
 
         # 股票期权不添加交易所后缀
         if exchange in [Exchange.SSE, Exchange.SZSE] and symbol in self.symbols:
@@ -360,36 +369,36 @@ class RqdataDatafeed(BaseDatafeed):
                     symbol=symbol,
                     exchange=exchange,
                     datetime=dt,
-                    open_price=row.open,
-                    high_price=row.high,
-                    low_price=row.low,
-                    pre_close=row.prev_close,
-                    last_price=row.last,
-                    volume=row.volume,
-                    turnover=row.total_turnover,
+                    open_price=_as_float(row.open),
+                    high_price=_as_float(row.high),
+                    low_price=_as_float(row.low),
+                    pre_close=_as_float(row.prev_close),
+                    last_price=_as_float(row.last),
+                    volume=_as_float(row.volume),
+                    turnover=_as_float(row.total_turnover),
                     open_interest=getattr(row, "open_interest", 0),
-                    limit_up=row.limit_up,
-                    limit_down=row.limit_down,
-                    bid_price_1=row.b1,
-                    bid_price_2=row.b2,
-                    bid_price_3=row.b3,
-                    bid_price_4=row.b4,
-                    bid_price_5=row.b5,
-                    ask_price_1=row.a1,
-                    ask_price_2=row.a2,
-                    ask_price_3=row.a3,
-                    ask_price_4=row.a4,
-                    ask_price_5=row.a5,
-                    bid_volume_1=row.b1_v,
-                    bid_volume_2=row.b2_v,
-                    bid_volume_3=row.b3_v,
-                    bid_volume_4=row.b4_v,
-                    bid_volume_5=row.b5_v,
-                    ask_volume_1=row.a1_v,
-                    ask_volume_2=row.a2_v,
-                    ask_volume_3=row.a3_v,
-                    ask_volume_4=row.a4_v,
-                    ask_volume_5=row.a5_v,
+                    limit_up=_as_float(row.limit_up),
+                    limit_down=_as_float(row.limit_down),
+                    bid_price_1=_as_float(row.b1),
+                    bid_price_2=_as_float(row.b2),
+                    bid_price_3=_as_float(row.b3),
+                    bid_price_4=_as_float(row.b4),
+                    bid_price_5=_as_float(row.b5),
+                    ask_price_1=_as_float(row.a1),
+                    ask_price_2=_as_float(row.a2),
+                    ask_price_3=_as_float(row.a3),
+                    ask_price_4=_as_float(row.a4),
+                    ask_price_5=_as_float(row.a5),
+                    bid_volume_1=_as_float(row.b1_v),
+                    bid_volume_2=_as_float(row.b2_v),
+                    bid_volume_3=_as_float(row.b3_v),
+                    bid_volume_4=_as_float(row.b4_v),
+                    bid_volume_5=_as_float(row.b5_v),
+                    ask_volume_1=_as_float(row.a1_v),
+                    ask_volume_2=_as_float(row.a2_v),
+                    ask_volume_3=_as_float(row.a3_v),
+                    ask_volume_4=_as_float(row.a4_v),
+                    ask_volume_5=_as_float(row.a5_v),
                     gateway_name="RQ"
                 )
 
@@ -397,7 +406,7 @@ class RqdataDatafeed(BaseDatafeed):
 
         return data
 
-    def _query_dominant_history(self, req: HistoryRequest, output: Callable = print) -> list[BarData] | None:
+    def _query_dominant_history(self, req: HistoryRequest, output: Callable = print) -> list[BarData]:
         """查询期货主力K线数据"""
         if not self.inited:
             n: bool = self.init(output)
@@ -406,13 +415,13 @@ class RqdataDatafeed(BaseDatafeed):
 
         symbol: str = req.symbol
         exchange: Exchange = req.exchange
-        interval: Interval = req.interval
+        interval: Interval = cast(Interval, req.interval)
         start: datetime = to_china_tz(req.start)
-        end: datetime = to_china_tz(req.end)
+        end: datetime = to_china_tz(cast(datetime, req.end))
 
         rq_interval: str | None = INTERVAL_VT2RQ.get(interval, None)
         if not rq_interval:
-            output(f"RQData查询K线数据失败：不支持的时间周期{req.interval.value}")
+            output(f"RQData查询K线数据失败：不支持的时间周期{interval.value}")
             return []
 
         # 为了将米筐时间戳（K线结束时点）转换为VeighNa时间戳（K线开始时点）
@@ -452,12 +461,12 @@ class RqdataDatafeed(BaseDatafeed):
                     exchange=exchange,
                     interval=interval,
                     datetime=dt,
-                    open_price=round_to(row.open, 0.000001),
-                    high_price=round_to(row.high, 0.000001),
-                    low_price=round_to(row.low, 0.000001),
-                    close_price=round_to(row.close, 0.000001),
-                    volume=row.volume,
-                    turnover=row.total_turnover,
+                    open_price=round_to(_as_float(row.open), 0.000001),
+                    high_price=round_to(_as_float(row.high), 0.000001),
+                    low_price=round_to(_as_float(row.low), 0.000001),
+                    close_price=round_to(_as_float(row.close), 0.000001),
+                    volume=_as_float(row.volume),
+                    turnover=_as_float(row.total_turnover),
                     open_interest=getattr(row, "open_interest", 0),
                     gateway_name="RQ"
                 )

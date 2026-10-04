@@ -58,12 +58,12 @@ class RqdataGateway(BaseGateway):
 
     default_name: str = "RQDATA"
 
-    default_setting: dict[str, str] = {
+    default_setting: dict[str, str | int | float | bool] = {
         "用户名": "",
         "密码": ""
     }
 
-    exchanges: list[str] = list(EXCHANGE_VT2RQDATA.keys())
+    exchanges: list[Exchange] = list(EXCHANGE_RQDATA2VT.values())
 
     def __init__(self, event_engine: EventEngine, gateway_name: str) -> None:
         """初始化行情客户端、订阅集合和合约映射。"""
@@ -74,7 +74,7 @@ class RqdataGateway(BaseGateway):
 
         self.subscribed: set[str] = set()
         self.futures_map: dict[str, tuple[str, Exchange]] = {}      # 期货代码交易所映射信息
-        self.symbol_map: dict[str, str] = {}
+        self.symbol_map: dict[str, ContractData] = {}
 
     def connect(self, setting: dict) -> None:
         """连接交易接口"""
@@ -187,7 +187,7 @@ class RqdataGateway(BaseGateway):
                 contract = ContractData(
                     symbol=symbol,
                     exchange=exchange,
-                    name=tp.symbol,
+                    name=cast(str, tp.symbol),
                     product=product,
                     size=size,
                     pricetick=pricetick,
@@ -202,7 +202,7 @@ class RqdataGateway(BaseGateway):
 
     def handle_msg(self, data: dict) -> None:
         """处理行情推送"""
-        contract: ContractData = self.symbol_map.get(data["order_book_id"], None)
+        contract: ContractData | None = self.symbol_map.get(data["order_book_id"], None)
         if not contract:
             self.write_log(f"收到不支持合约{data['order_book_id']}的行情推送")
             return
