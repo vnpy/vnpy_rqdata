@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta
+from bisect import bisect_right
+from datetime import date, datetime, timedelta
 from typing import cast
 from collections.abc import Callable
 
@@ -38,6 +39,10 @@ FUTURES_EXCHANGES: set[Exchange] = {
     Exchange.INE,
     Exchange.GFEX
 }
+
+FUND_TYPES: set[str] = {"ETF", "LOF", "REITs"}
+EX_FACTOR_TYPES: set[str] = {"CS", "ETF", "LOF", "REITs"}
+NAV_LOOKBACK_DAYS: int = 15
 
 CHINA_TZ = ZoneInfo("Asia/Shanghai")
 
@@ -160,6 +165,9 @@ class RqdataDatafeed(BaseDatafeed):
 
             df: DataFrame = all_instruments()
             self.symbols: ndarray = df["order_book_id"].to_numpy()
+            self.instrument_types: dict[str, str] = dict(
+                zip(df["order_book_id"].astype(str), df["type"].astype(str), strict=True)
+            )
         except RQDataError as ex:
             output(f"RQData数据服务初始化失败：{ex}")
             return False
@@ -275,7 +283,135 @@ class RqdataDatafeed(BaseDatafeed):
 
                 data.append(bar)
 
+        if data and (rq_symbol.endswith(".XSHG") or rq_symbol.endswith(".XSHE")):
+            self._attach_security_extra(symbol, rq_symbol, start, end, data, output)
+
         return data
+
+    def _attach_security_extra(
+        self,
+        symbol: str,
+        rq_symbol: str,
+        start: datetime,
+        end: datetime,
+        bars: list[BarData],
+        output: Callable,
+    ) -> None:
+        """为沪深证券K线附加净值和除权因子"""
+        instrument_type: str = self.instrument_types.get(rq_symbol, "")
+        nav: dict[date, float] | None = None
+        factor: dict[date, tuple[float, float]] | None = None
+
+        if instrument_type in FUND_TYPES:
+            nav = self._load_nav(symbol, rq_symbol, start, end, output)
+        if instrument_type in EX_FACTOR_TYPES:
+            factor = self._load_ex_factor(rq_symbol, end, output)
+        if not nav and not factor:
+            return
+
+        nav_series: dict[date, float] = nav or {}
+        factor_series: dict[date, tuple[float, float]] = factor or {}
+        nav_dates: list[date] = sorted(nav_series)
+        ex_dates: list[date] = sorted(factor_series)
+
+        for bar in bars:
+            day: date = bar.datetime.date()
+            extra: dict = dict(bar.extra) if bar.extra else {}
+
+            if nav_dates:
+                nav_ix: int = bisect_right(nav_dates, day) - 1
+                if nav_ix >= 0:
+                    nav_date: date = nav_dates[nav_ix]
+                    extra["nav"] = {
+                        "unit_net_value": nav_series[nav_date],
+                        "date": nav_date.strftime("%Y-%m-%d"),
+                    }
+
+            if ex_dates:
+                ex_ix: int = bisect_right(ex_dates, day) - 1
+                if ex_ix >= 0:
+                    ex_date: date = ex_dates[ex_ix]
+                    ex_factor, ex_cum_factor = factor_series[ex_date]
+                    extra["ex_factor"] = {
+                        "ex_factor": ex_factor,
+                        "ex_cum_factor": ex_cum_factor,
+                        "date": ex_date.strftime("%Y-%m-%d"),
+                    }
+
+            if extra:
+                bar.extra = extra
+
+    def _load_nav(
+        self,
+        symbol: str,
+        rq_symbol: str,
+        start: datetime,
+        end: datetime,
+        output: Callable,
+    ) -> dict[date, float] | None:
+        """读取基金净值序列"""
+        try:
+            import rqdatac_fund
+            from pandas import to_datetime
+
+            df: DataFrame = rqdatac_fund.fund.get_nav(
+                [symbol],
+                start_date=(start - timedelta(days=NAV_LOOKBACK_DAYS)).date(),
+                end_date=end.date(),
+                fields=["unit_net_value"],
+                expect_df=True,
+            )
+        except Exception as ex:
+            output(f"RQData基金净值查询失败：{rq_symbol} {ex}")
+            return None
+
+        if df is None or df.empty or "unit_net_value" not in df.columns:
+            return None
+
+        df = df.dropna(subset=["unit_net_value"])
+        if df.empty:
+            return None
+
+        series: dict[date, float] = {}
+        for index, value in df["unit_net_value"].items():
+            if not isinstance(index, tuple):
+                continue
+
+            nav_date: date = to_datetime(index[1]).date()
+            series[nav_date] = float(value)
+
+        return series or None
+
+    def _load_ex_factor(
+        self,
+        rq_symbol: str,
+        end: datetime,
+        output: Callable,
+    ) -> dict[date, tuple[float, float]] | None:
+        """读取截至结束日的除权因子。记录按除权日给出，早于区间的最近一条仍然有效。"""
+        try:
+            from pandas import to_datetime
+            from rqdatac import get_ex_factor
+
+            df: DataFrame = get_ex_factor(rq_symbol, end_date=end.date())
+        except Exception as ex:
+            output(f"RQData除权因子查询失败：{rq_symbol} {ex}")
+            return None
+
+        if df is None or df.empty or "ex_factor" not in df.columns:
+            return None
+
+        df = df.dropna(subset=["ex_factor", "ex_cum_factor"])
+        if df.empty:
+            return None
+
+        series: dict[date, tuple[float, float]] = {}
+        for index, row in df.iterrows():
+            ts = index[-1] if isinstance(index, tuple) else index
+            ex_date: date = to_datetime(ts).date()
+            series[ex_date] = (float(row.ex_factor), float(row.ex_cum_factor))
+
+        return series or None
 
     def query_tick_history(self, req: HistoryRequest, output: Callable = print) -> list[TickData] | None:
         """查询Tick数据"""
